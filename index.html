@@ -923,6 +923,8 @@
               const spawnAboveRows = (writeRow - r + 1);
               cell.y = r * CELL + CELL / 2; // final resting position
               cell.offsetY = -(spawnAboveRows) * CELL; // start above the board
+              // 1-in-300 chance of a random super gem spawn
+              if (Math.random() < 1 / 300) cell.super = true;
               grid[r][c] = cell;
               fallInfo.push({ cell, fromY: cell.y + cell.offsetY, toY: cell.y, spawn: true });
             }

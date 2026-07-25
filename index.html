@@ -278,7 +278,7 @@
       <h1>Machinery Match!</h1>
       <div id="hud">
         <div>SCORE<br><b id="score">0</b><span id="goalContainer" style="display:none;"> / <span
-              id="goal">5000</span></span></div>
+              id="goal">1000</span></span></div>
         <div id="roundContainer" style="display:none;">ROUND<br><b id="round">1</b></div>
         <div id="combo">COMBO x1</div>
         <div id="timerContainer" style="display:none;">TIME<br><b id="timer">05:00</b></div>
@@ -296,7 +296,7 @@
           <div class="mode-selection">
             <div class="mode-card active" id="modeChallenge">
               <div class="mode-title">Challenge Mode</div>
-              <div class="mode-desc">Race the clock! Reach 5000 points in 5 mins. Succeed to face faster, harder rounds.
+              <div class="mode-desc">Race the clock! Reach 1000 points in 5 mins. Succeed to face faster, harder rounds.
               </div>
             </div>
             <div class="mode-card" id="modeInfinite">
@@ -1055,7 +1055,7 @@
           score = 0;
           scoreEl.textContent = score;
 
-          targetGoal = 5000 + (currentRound - 1) * 100;
+          targetGoal = 1000 + (currentRound - 1) * 100;
           timeLeft = Math.max(10, 300 - (currentRound - 1) * 10);
 
           goalEl.textContent = targetGoal;

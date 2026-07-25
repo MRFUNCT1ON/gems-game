@@ -1,1081 +1,1164 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Machinery Match!</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg-deep: #0a0906;
-    --bg-panel: #15130d;
-    --panel-border: #33291a;
-    --accent: #F0B90B;
-    --accent-2: #FFDE7A;
-    --text: #f5f1e6;
-    --text-dim: #9c9483;
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; height: 100%;
-    background: radial-gradient(circle at 50% 0%, #221c10 0%, var(--bg-deep) 70%);
-    color: var(--text);
-    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #wrap { text-align: center; user-select: none; }
-  h1 {
-    margin: 0 0 4px;
-    font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    background: linear-gradient(90deg, var(--accent-2), var(--accent));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    border: 1px solid var(--accent);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    color: var(--accent);
-    margin-bottom: 14px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .badge::before {
-    content: '';
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 6px var(--accent);
-  }
-  #hud {
-    display: flex; justify-content: space-between; align-items: center;
-    width: 480px; margin: 0 auto 10px;
-    background: var(--bg-panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 10px;
-    padding: 8px 16px;
-    font-size: 14px;
-    color: var(--text-dim);
-  }
-  #hud b { color: var(--text); font-size: 18px; font-family: 'Rajdhani', sans-serif; }
-  #combo {
-    color: var(--accent);
-    font-weight: bold;
-    opacity: 0;
-    transition: opacity .2s;
-  }
-  #boardHolder {
-    position: relative;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 0 0 1px var(--panel-border), 0 20px 60px rgba(0,0,0,0.7);
-  }
-  canvas { display: block; background: var(--bg-panel); }
-  #msg {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    display: none; align-items: center; justify-content: center;
-    background: rgba(10,9,6,0.88);
-    font-size: 20px; color: var(--accent);
-    letter-spacing: 1px;
-  }
-  #footer { margin-top: 10px; font-size: 12px; color: var(--text-dim); }
-  .overlay {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(10,9,6,0.96);
-    z-index: 5;
-    text-align: center;
-    padding: 20px;
-  }
-  .overlay h2 {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 26px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin: 0 0 8px;
-    letter-spacing: 1px;
-  }
-  .overlay p {
-    color: var(--text-dim);
-    font-size: 13px;
-    max-width: 360px;
-    margin: 4px 0 20px;
-    line-height: 1.5;
-  }
-  .game-btn {
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    color: #0a0906;
-    border: none;
-    border-radius: 8px;
-    padding: 12px 32px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: transform .1s ease, background .2s;
-  }
-  .game-btn:hover { transform: scale(1.04); }
-  .game-btn:active { transform: scale(0.97); }
-  .game-btn.secondary {
-    background: transparent;
-    border: 1px solid var(--panel-border);
-    color: var(--text-dim);
-    margin-left: 8px;
-  }
-  .game-btn.secondary:hover {
-    border-color: var(--text-dim);
-    color: var(--text);
-  }
-  .mode-selection {
-    display: flex;
-    gap: 12px;
-    margin: 10px 0 20px;
-    width: 100%;
-    max-width: 420px;
-  }
-  .mode-card {
-    flex: 1;
-    background: rgba(21, 19, 13, 0.6);
-    border: 1px solid var(--panel-border);
-    border-radius: 10px;
-    padding: 14px 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .mode-card:hover {
-    border-color: var(--accent-2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(240, 185, 11, 0.15);
-  }
-  .mode-card.active {
-    border-color: var(--accent);
-    background: rgba(240, 185, 11, 0.08);
-    box-shadow: 0 0 15px rgba(240, 185, 11, 0.25);
-  }
-  .mode-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    letter-spacing: 0.5px;
-  }
-  .mode-card.active .mode-title {
-    color: var(--accent-2);
-  }
-  .mode-desc {
-    font-size: 11px;
-    color: var(--text-dim);
-    line-height: 1.4;
-  }
-  .hud-sub {
-    font-size: 10px;
-    color: var(--accent-2);
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    display: block;
-    margin-top: 2px;
-  }
-</style>
-</head>
-<body>
-<div id="wrap">
-  <div class="badge">Live · Pulsechain · Gears</div>
-  <h1>Machinery Match!</h1>
-  <div id="hud">
-    <div>SCORE<br><b id="score">0</b><span id="goalContainer" style="display:none;"> / <span id="goal">5000</span></span></div>
-    <div id="roundContainer" style="display:none;">ROUND<br><b id="round">1</b></div>
-    <div id="combo">COMBO x1</div>
-    <div id="timerContainer" style="display:none;">TIME<br><b id="timer">05:00</b></div>
-    <div>BEST<br><b id="best">0</b><span id="cumScoreContainer" class="hud-sub" style="display:none;">TOTAL: <span id="cumScore">0</span></span></div>
-  </div>
-  <div id="boardHolder">
-    <canvas id="board"></canvas>
-    <div id="msg"><span id="msgText">Reshuffling...</span></div>
-    <div id="startScreen" class="overlay">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Machinery Match!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet">
+    <style>
+      :root {
+        --bg-deep: #0a0906;
+        --bg-panel: #15130d;
+        --panel-border: #33291a;
+        --accent: #F0B90B;
+        --accent-2: #FFDE7A;
+        --text: #f5f1e6;
+        --text-dim: #9c9483;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: radial-gradient(circle at 50% 0%, #221c10 0%, var(--bg-deep) 70%);
+        color: var(--text);
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #wrap {
+        text-align: center;
+        user-select: none;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        background: linear-gradient(90deg, var(--accent-2), var(--accent));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--accent);
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 11px;
+        letter-spacing: 1.5px;
+        color: var(--accent);
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+
+      .badge::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 6px var(--accent);
+      }
+
+      #hud {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 480px;
+        margin: 0 auto 10px;
+        background: var(--bg-panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        padding: 8px 16px;
+        font-size: 14px;
+        color: var(--text-dim);
+      }
+
+      #hud b {
+        color: var(--text);
+        font-size: 18px;
+        font-family: 'Rajdhani', sans-serif;
+      }
+
+      #combo {
+        color: var(--accent);
+        font-weight: bold;
+        opacity: 0;
+        transition: opacity .2s;
+      }
+
+      #boardHolder {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 0 0 1px var(--panel-border), 0 20px 60px rgba(0, 0, 0, 0.7);
+      }
+
+      canvas {
+        display: block;
+        background: var(--bg-panel);
+      }
+
+      #msg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(10, 9, 6, 0.88);
+        font-size: 20px;
+        color: var(--accent);
+        letter-spacing: 1px;
+      }
+
+      #footer {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+
+      .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(10, 9, 6, 0.96);
+        z-index: 5;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .overlay h2 {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 8px;
+        letter-spacing: 1px;
+      }
+
+      .overlay p {
+        color: var(--text-dim);
+        font-size: 13px;
+        max-width: 360px;
+        margin: 4px 0 20px;
+        line-height: 1.5;
+      }
+
+      .game-btn {
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        color: #0a0906;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 32px;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: transform .1s ease, background .2s;
+      }
+
+      .game-btn:hover {
+        transform: scale(1.04);
+      }
+
+      .game-btn:active {
+        transform: scale(0.97);
+      }
+
+      .game-btn.secondary {
+        background: transparent;
+        border: 1px solid var(--panel-border);
+        color: var(--text-dim);
+        margin-left: 8px;
+      }
+
+      .game-btn.secondary:hover {
+        border-color: var(--text-dim);
+        color: var(--text);
+      }
+
+      .mode-selection {
+        display: flex;
+        gap: 12px;
+        margin: 10px 0 20px;
+        width: 100%;
+        max-width: 420px;
+      }
+
+      .mode-card {
+        flex: 1;
+        background: rgba(21, 19, 13, 0.6);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        padding: 14px 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .mode-card:hover {
+        border-color: var(--accent-2);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(240, 185, 11, 0.15);
+      }
+
+      .mode-card.active {
+        border-color: var(--accent);
+        background: rgba(240, 185, 11, 0.08);
+        box-shadow: 0 0 15px rgba(240, 185, 11, 0.25);
+      }
+
+      .mode-title {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        letter-spacing: 0.5px;
+      }
+
+      .mode-card.active .mode-title {
+        color: var(--accent-2);
+      }
+
+      .mode-desc {
+        font-size: 11px;
+        color: var(--text-dim);
+        line-height: 1.4;
+      }
+
+      .hud-sub {
+        font-size: 10px;
+        color: var(--accent-2);
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        display: block;
+        margin-top: 2px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="wrap">
       <div class="badge">Live · Pulsechain · Gears</div>
-      <h1 style="margin-bottom:4px;">Machinery Match!</h1>
-      <p style="margin-bottom:12px;">Swap adjacent tokens to match 3 or more. Chain cascades for combo multipliers. The board never runs dry — it reshuffles automatically when no moves remain.</p>
-      <div class="mode-selection">
-        <div class="mode-card active" id="modeChallenge">
-          <div class="mode-title">Challenge Mode</div>
-          <div class="mode-desc">Race the clock! Reach 5000 points in 5 mins. Succeed to face faster, harder rounds.</div>
+      <h1>Machinery Match!</h1>
+      <div id="hud">
+        <div>SCORE<br><b id="score">0</b><span id="goalContainer" style="display:none;"> / <span
+              id="goal">5000</span></span></div>
+        <div id="roundContainer" style="display:none;">ROUND<br><b id="round">1</b></div>
+        <div id="combo">COMBO x1</div>
+        <div id="timerContainer" style="display:none;">TIME<br><b id="timer">05:00</b></div>
+        <div>BEST<br><b id="best">0</b><span id="cumScoreContainer" class="hud-sub" style="display:none;">TOTAL: <span
+              id="cumScore">0</span></span></div>
+      </div>
+      <div id="boardHolder">
+        <canvas id="board"></canvas>
+        <div id="msg"><span id="msgText">Reshuffling...</span></div>
+        <div id="startScreen" class="overlay">
+          <div class="badge">Live · Pulsechain · Gears</div>
+          <h1 style="margin-bottom:4px;">Machinery Match!</h1>
+          <p style="margin-bottom:12px;">Swap adjacent tokens to match 3 or more. Chain cascades for combo multipliers.
+            The board never runs dry — it reshuffles automatically when no moves remain.</p>
+          <div class="mode-selection">
+            <div class="mode-card active" id="modeChallenge">
+              <div class="mode-title">Challenge Mode</div>
+              <div class="mode-desc">Race the clock! Reach 5000 points in 5 mins. Succeed to face faster, harder rounds.
+              </div>
+            </div>
+            <div class="mode-card" id="modeInfinite">
+              <div class="mode-title">Infinite Mode</div>
+              <div class="mode-desc">Relaxed play. No timers, no targets. The classic endless experience.</div>
+            </div>
+          </div>
+          <button id="startBtn" class="game-btn">Start Game</button>
         </div>
-        <div class="mode-card" id="modeInfinite">
-          <div class="mode-title">Infinite Mode</div>
-          <div class="mode-desc">Relaxed play. No timers, no targets. The classic endless experience.</div>
+
+        <!-- Round Cleared Overlay -->
+        <div id="clearScreen" class="overlay" style="display:none;">
+          <div class="badge">Round Cleared</div>
+          <h2 id="clearTitle">Round 1 Cleared!</h2>
+          <p id="clearStats" style="margin-bottom:20px;">Score: 5,120 / 5,000<br>Time Remaining: 02:45</p>
+          <button id="nextRoundBtn" class="game-btn">Next Round</button>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameOverScreen" class="overlay" style="display:none;">
+          <div class="badge" style="border-color:#ff4444; color:#ff4444;">Game Over</div>
+          <h2 id="gameOverTitle" style="color:#ff4444;">Challenge Failed</h2>
+          <p id="gameOverStats" style="margin-bottom:20px;">Completed: 3 Rounds<br>Cumulative Score: 16,420</p>
+          <div style="display:flex; justify-content:center;">
+            <button id="retryBtn" class="game-btn">Try Again</button>
+            <button id="menuBtn" class="game-btn secondary">Main Menu</button>
+          </div>
         </div>
       </div>
-      <button id="startBtn" class="game-btn">Start Game</button>
+      <div id="footer">Swap adjacent tokens to match 3+ • Bigger combos get Bigger Bonuses!</div>
     </div>
 
-    <!-- Round Cleared Overlay -->
-    <div id="clearScreen" class="overlay" style="display:none;">
-      <div class="badge">Round Cleared</div>
-      <h2 id="clearTitle">Round 1 Cleared!</h2>
-      <p id="clearStats" style="margin-bottom:20px;">Score: 5,120 / 5,000<br>Time Remaining: 02:45</p>
-      <button id="nextRoundBtn" class="game-btn">Next Round</button>
-    </div>
-    
-    <!-- Game Over Overlay -->
-    <div id="gameOverScreen" class="overlay" style="display:none;">
-      <div class="badge" style="border-color:#ff4444; color:#ff4444;">Game Over</div>
-      <h2 id="gameOverTitle" style="color:#ff4444;">Challenge Failed</h2>
-      <p id="gameOverStats" style="margin-bottom:20px;">Completed: 3 Rounds<br>Cumulative Score: 16,420</p>
-      <div style="display:flex; justify-content:center;">
-        <button id="retryBtn" class="game-btn">Try Again</button>
-        <button id="menuBtn" class="game-btn secondary">Main Menu</button>
-      </div>
-    </div>
-  </div>
-  <div id="footer">Swap adjacent tokens to match 3+ • Bigger combos get Bigger Bonuses!</div>
-</div>
+    <script>
+      (() => {
+        // ---------- Config ----------
+        const COLS = 8;
+        const ROWS = 8;
+        const CELL = 60;
+        const GEM_TYPES = 6;
+        const GEM_PATHS = Array.from({ length: GEM_TYPES }, (_, i) => `gems/gem${i}.png`);
+        const SUPER_PATH = 'gems/super.png'; // optional — falls back to a drawn gold star if missing
+        const SWAP_MS = 150;
+        const FALL_MS_PER_CELL = 60;
+        const CLEAR_MS = 180;
+        const CONFETTI_COLORS = ['#F0B90B', '#FFDE7A', '#FFFFFF', '#D4AF37'];
+        const GRAVITY = 220; // px/s^2, confetti fall acceleration
 
-<script>
-(() => {
-  // ---------- Config ----------
-  const COLS = 8;
-  const ROWS = 8;
-  const CELL = 60;
-  const GEM_TYPES = 6;
-  const GEM_PATHS = Array.from({length: GEM_TYPES}, (_, i) => `gems/gem${i}.png`);
-  const SUPER_PATH = 'gems/super.png'; // optional — falls back to a drawn gold star if missing
-  const SWAP_MS = 150;
-  const FALL_MS_PER_CELL = 60;
-  const CLEAR_MS = 180;
-  const CONFETTI_COLORS = ['#F0B90B', '#FFDE7A', '#FFFFFF', '#D4AF37'];
-  const GRAVITY = 220; // px/s^2, confetti fall acceleration
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        canvas.width = COLS * CELL;
+        canvas.height = ROWS * CELL;
 
-  const canvas = document.getElementById('board');
-  const ctx = canvas.getContext('2d');
-  canvas.width = COLS * CELL;
-  canvas.height = ROWS * CELL;
+        const scoreEl = document.getElementById('score');
+        const bestEl = document.getElementById('best');
+        const comboEl = document.getElementById('combo');
+        const msgEl = document.getElementById('msg');
+        const msgTextEl = document.getElementById('msgText');
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
 
-  const scoreEl = document.getElementById('score');
-  const bestEl = document.getElementById('best');
-  const comboEl = document.getElementById('combo');
-  const msgEl = document.getElementById('msg');
-  const msgTextEl = document.getElementById('msgText');
-  const startScreen = document.getElementById('startScreen');
-  const startBtn = document.getElementById('startBtn');
+        const goalContainer = document.getElementById('goalContainer');
+        const goalEl = document.getElementById('goal');
+        const roundContainer = document.getElementById('roundContainer');
+        const roundEl = document.getElementById('round');
+        const timerContainer = document.getElementById('timerContainer');
+        const timerEl = document.getElementById('timer');
+        const cumScoreContainer = document.getElementById('cumScoreContainer');
+        const cumScoreEl = document.getElementById('cumScore');
 
-  const goalContainer = document.getElementById('goalContainer');
-  const goalEl = document.getElementById('goal');
-  const roundContainer = document.getElementById('roundContainer');
-  const roundEl = document.getElementById('round');
-  const timerContainer = document.getElementById('timerContainer');
-  const timerEl = document.getElementById('timer');
-  const cumScoreContainer = document.getElementById('cumScoreContainer');
-  const cumScoreEl = document.getElementById('cumScore');
+        const clearScreen = document.getElementById('clearScreen');
+        const clearTitle = document.getElementById('clearTitle');
+        const clearStats = document.getElementById('clearStats');
+        const nextRoundBtn = document.getElementById('nextRoundBtn');
 
-  const clearScreen = document.getElementById('clearScreen');
-  const clearTitle = document.getElementById('clearTitle');
-  const clearStats = document.getElementById('clearStats');
-  const nextRoundBtn = document.getElementById('nextRoundBtn');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const gameOverTitle = document.getElementById('gameOverTitle');
+        const gameOverStats = document.getElementById('gameOverStats');
+        const retryBtn = document.getElementById('retryBtn');
+        const menuBtn = document.getElementById('menuBtn');
 
-  const gameOverScreen = document.getElementById('gameOverScreen');
-  const gameOverTitle = document.getElementById('gameOverTitle');
-  const gameOverStats = document.getElementById('gameOverStats');
-  const retryBtn = document.getElementById('retryBtn');
-  const menuBtn = document.getElementById('menuBtn');
+        const modeChallengeCard = document.getElementById('modeChallenge');
+        const modeInfiniteCard = document.getElementById('modeInfinite');
 
-  const modeChallengeCard = document.getElementById('modeChallenge');
-  const modeInfiniteCard = document.getElementById('modeInfinite');
+        // ---------- State ----------
+        let grid = [];          // grid[row][col] = {type, x, y, offsetX, offsetY, scale, alpha}
+        let score = 0;
+        let bestInfinite = Number(localStorage.getItem('ccc_best_infinite') || localStorage.getItem('ccc_best') || 0);
+        let bestChallenge = Number(localStorage.getItem('ccc_best_challenge') || 0);
+        let selectedMode = 'challenge';
+        let gameMode = 'challenge';
+        let currentRound = 1;
+        let cumulativeScore = 0;
+        let timeLeft = 0;
+        let timerInterval = null;
+        let targetGoal = 1000;
 
-  // ---------- State ----------
-  let grid = [];          // grid[row][col] = {type, x, y, offsetX, offsetY, scale, alpha}
-  let score = 0;
-  let bestInfinite = Number(localStorage.getItem('ccc_best_infinite') || localStorage.getItem('ccc_best') || 0);
-  let bestChallenge = Number(localStorage.getItem('ccc_best_challenge') || 0);
-  let selectedMode = 'challenge';
-  let gameMode = 'challenge';
-  let currentRound = 1;
-  let cumulativeScore = 0;
-  let timeLeft = 0;
-  let timerInterval = null;
-  let targetGoal = 5000;
-
-  // Initialize best score based on initial selection
-  bestEl.textContent = bestChallenge;
-
-  let selected = null;    // {row, col}
-  let animating = false;
-  let inputLocked = true; // stays locked until Start Game is pressed
-  let gameStarted = false;
-  let particles = [];
-
-  // ---------- Asset loading ----------
-  const images = [];
-  let superImage = null;
-  let imagesLoaded = 0;
-  function loadImages(cb) {
-    const total = GEM_PATHS.length + 1; // gems + super
-    function onOne() {
-      imagesLoaded++;
-      if (imagesLoaded === total) cb();
-    }
-    GEM_PATHS.forEach((src, i) => {
-      const img = new Image();
-      img.onload = img.onerror = onOne;
-      img.src = src;
-      images[i] = img;
-    });
-    superImage = new Image();
-    superImage.onload = superImage.onerror = onOne;
-    superImage.src = SUPER_PATH;
-  }
-
-  function drawGemImage(img, type, cx, cy, scale, alpha) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    const size = (CELL - 8) * scale;
-    if (img && img.complete && img.naturalWidth > 0) {
-      ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
-    } else {
-      // Fallback if a PNG is missing/broken: colored circle so game still works
-      const fallbackColors = ['#F0B90B', '#FFDE7A', '#B8860B', '#8a6d1f', '#D4AF37', '#5c4a1a'];
-      ctx.beginPath();
-      ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
-      ctx.fillStyle = fallbackColors[type % fallbackColors.length];
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  function drawStarPath(cx, cy, points, outerR, innerR) {
-    ctx.beginPath();
-    for (let i = 0; i < points * 2; i++) {
-      const r = i % 2 === 0 ? outerR : innerR;
-      const angle = (Math.PI / points) * i - Math.PI / 2;
-      const x = cx + Math.cos(angle) * r;
-      const y = cy + Math.sin(angle) * r;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-  }
-
-  function drawSuperGem(cx, cy, scale, alpha) {
-    if (superImage && superImage.complete && superImage.naturalWidth > 0) {
-      drawGemImage(superImage, 0, cx, cy, scale, alpha);
-      return;
-    }
-    // Procedural fallback: pulsing gold glow behind a gold star
-    const pulse = 1 + 0.08 * Math.sin(performance.now() / 220);
-    const size = (CELL - 6) * scale * pulse;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, size * 0.75);
-    grad.addColorStop(0, '#FFF6D0');
-    grad.addColorStop(0.4, '#F0B90B');
-    grad.addColorStop(1, 'rgba(240,185,11,0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, size * 0.75, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#0a0906';
-    ctx.strokeStyle = '#FFDE7A';
-    ctx.lineWidth = 2;
-    drawStarPath(cx, cy, 5, size * 0.42, size * 0.2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // ---------- Confetti particles ----------
-  function spawnConfetti(spots, big) {
-    const count = big ? 10 : 6;
-    spots.forEach(spot => {
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 60 + Math.random() * 90;
-        particles.push({
-          x: spot.x, y: spot.y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 40,
-          life: 0,
-          maxLife: 500 + Math.random() * 300,
-          size: 3 + Math.random() * 3,
-          color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-          rotation: Math.random() * Math.PI * 2,
-          spin: (Math.random() - 0.5) * 10
-        });
-      }
-    });
-  }
-
-  function updateParticles(dt) {
-    if (particles.length === 0) return;
-    const dtS = dt / 1000;
-    particles.forEach(p => {
-      p.life += dt;
-      p.vy += GRAVITY * dtS;
-      p.x += p.vx * dtS;
-      p.y += p.vy * dtS;
-      p.rotation += p.spin * dtS;
-    });
-    particles = particles.filter(p => p.life < p.maxLife);
-  }
-
-  // ---------- Grid helpers ----------
-  function randType() { return Math.floor(Math.random() * GEM_TYPES); }
-
-  function makeCell(row, col, type) {
-    return {
-      type,
-      row, col,
-      x: col * CELL + CELL / 2,
-      y: row * CELL + CELL / 2,
-      offsetX: 0, offsetY: 0,
-      scale: 1, alpha: 1,
-      falling: false
-    };
-  }
-
-  function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
-
-  // Effective type for matching purposes: a super gem is unique per-cell so it
-  // never auto-matches with anything, including another super gem.
-  function typeOf(cell, r, c) {
-    if (!cell) return null;
-    return cell.super ? ('S' + r + '_' + c) : cell.type;
-  }
-
-  function wouldMatchAt(r, c, type) {
-    // horizontal
-    let h = 1;
-    for (let cc = c - 1; cc >= 0 && grid[r][cc] && grid[r][cc].type === type; cc--) h++;
-    for (let cc = c + 1; cc < COLS && grid[r][cc] && grid[r][cc].type === type; cc++) h++;
-    if (h >= 3) return true;
-    // vertical
-    let v = 1;
-    for (let rr = r - 1; rr >= 0 && grid[rr] && grid[rr][c] && grid[rr][c].type === type; rr--) v++;
-    for (let rr = r + 1; rr < ROWS && grid[rr] && grid[rr][c] && grid[rr][c].type === type; rr++) v++;
-    return v >= 3;
-  }
-
-  function buildInitialGrid() {
-    grid = [];
-    for (let r = 0; r < ROWS; r++) {
-      grid.push([]);
-      for (let c = 0; c < COLS; c++) {
-        let type;
-        do { type = randType(); } while (wouldMatchAt(r, c, type));
-        grid[r].push(makeCell(r, c, type));
-      }
-    }
-  }
-
-  // Returns each contiguous run (length >= 3) separately, horizontal and
-  // vertical, so callers can react to run length (confetti at 4+, super gem at 5+).
-  function findMatchGroups() {
-    const groups = [];
-    // horizontal runs
-    for (let r = 0; r < ROWS; r++) {
-      let runStart = 0;
-      for (let c = 1; c <= COLS; c++) {
-        const prevType = typeOf(grid[r][c - 1], r, c - 1);
-        const curType = c < COLS ? typeOf(grid[r][c], r, c) : null;
-        if (curType !== prevType) {
-          if (c - runStart >= 3) {
-            const cells = [];
-            for (let k = runStart; k < c; k++) cells.push({ r, c: k });
-            groups.push({ cells });
-          }
-          runStart = c;
-        }
-      }
-    }
-    // vertical runs
-    for (let c = 0; c < COLS; c++) {
-      let runStart = 0;
-      for (let r = 1; r <= ROWS; r++) {
-        const prevType = typeOf(grid[r - 1][c], r - 1, c);
-        const curType = r < ROWS ? typeOf(grid[r][c], r, c) : null;
-        if (curType !== prevType) {
-          if (r - runStart >= 3) {
-            const cells = [];
-            for (let k = runStart; k < r; k++) cells.push({ r: k, c });
-            groups.push({ cells });
-          }
-          runStart = r;
-        }
-      }
-    }
-    return groups;
-  }
-
-  function findAllMatches() {
-    const matched = new Set(); // "r,c"
-    findMatchGroups().forEach(g => g.cells.forEach(({ r, c }) => matched.add(r + ',' + c)));
-    return matched;
-  }
-
-  function hasAnyValidMove() {
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        if (grid[r][c] && grid[r][c].super) return true;
-      }
-    }
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        if (c < COLS - 1) {
-          swapTypesInMemory(r, c, r, c + 1);
-          const m = findAllMatches();
-          swapTypesInMemory(r, c, r, c + 1);
-          if (m.size > 0) return true;
-        }
-        if (r < ROWS - 1) {
-          swapTypesInMemory(r, c, r + 1, c);
-          const m = findAllMatches();
-          swapTypesInMemory(r, c, r + 1, c);
-          if (m.size > 0) return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  function swapTypesInMemory(r1, c1, r2, c2) {
-    const t = grid[r1][c1].type;
-    grid[r1][c1].type = grid[r2][c2].type;
-    grid[r2][c2].type = t;
-  }
-
-  // ---------- Animation engine ----------
-  function tween(duration, onUpdate, onDone) {
-    const start = performance.now();
-    function frame(now) {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOutQuad
-      onUpdate(eased, t);
-      if (t < 1) requestAnimationFrame(frame);
-      else onDone && onDone();
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // grid lines / cell backdrop
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        ctx.fillStyle = (r + c) % 2 === 0 ? '#1c1810' : '#15130d';
-        ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
-      }
-    }
-    // selection highlight
-    if (selected) {
-      ctx.strokeStyle = '#F0B90B';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(selected.col * CELL + 2, selected.row * CELL + 2, CELL - 4, CELL - 4);
-    }
-    // gems
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const cell = grid[r][c];
-        if (!cell) continue;
-        const cx = cell.x + cell.offsetX;
-        const cy = cell.y + cell.offsetY;
-        if (cell.super) {
-          drawSuperGem(cx, cy, cell.scale, cell.alpha);
-        } else {
-          drawGemImage(images[cell.type], cell.type, cx, cy, cell.scale, cell.alpha);
-        }
-      }
-    }
-    // confetti
-    particles.forEach(p => {
-      const t = p.life / p.maxLife;
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, 1 - t);
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rotation);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
-      ctx.restore();
-    });
-  }
-
-  let renderLoopRunning = false;
-  let lastFrameTime = null;
-  function startRenderLoop() {
-    if (renderLoopRunning) return;
-    renderLoopRunning = true;
-    function loop(now) {
-      if (lastFrameTime === null) lastFrameTime = now;
-      updateParticles(now - lastFrameTime);
-      lastFrameTime = now;
-      render();
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
-  }
-
-  // ---------- Score / combo UI ----------
-  function addScore(points, comboLevel) {
-    score += points;
-    scoreEl.textContent = score;
-    if (gameMode === 'infinite') {
-      if (score > bestInfinite) {
-        bestInfinite = score;
-        bestEl.textContent = bestInfinite;
-        localStorage.setItem('ccc_best_infinite', String(bestInfinite));
-        localStorage.setItem('ccc_best', String(bestInfinite));
-      }
-    } else {
-      const currentTotal = cumulativeScore + score;
-      if (currentTotal > bestChallenge) {
-        bestChallenge = currentTotal;
+        // Initialize best score based on initial selection
         bestEl.textContent = bestChallenge;
-        localStorage.setItem('ccc_best_challenge', String(bestChallenge));
-      }
-    }
-    if (comboLevel > 1) {
-      comboEl.textContent = `COMBO x${comboLevel}`;
-      comboEl.style.opacity = '1';
-      clearTimeout(addScore._t);
-      addScore._t = setTimeout(() => comboEl.style.opacity = '0', 900);
-    }
-  }
 
-  function scoreForMatch(size) {
-    if (size <= 3) return 30;
-    if (size === 4) return 60;
-    return 100 + (size - 5) * 40;
-  }
+        let selected = null;    // {row, col}
+        let animating = false;
+        let inputLocked = true; // stays locked until Start Game is pressed
+        let gameStarted = false;
+        let particles = [];
 
-  // ---------- Core resolve loop (clear -> collapse -> refill -> re-check) ----------
-  function resolveBoard(comboLevel) {
-    const groups = findMatchGroups();
-    if (groups.length === 0) {
-      if (gameMode === 'challenge') {
-        if (score >= targetGoal) {
-          triggerRoundCleared();
-          return;
-        } else if (timeLeft <= 0) {
-          triggerGameOver();
-          return;
-        }
-      }
-      inputLocked = false;
-      // ensure a move exists; if not, reshuffle to keep the round infinite
-      if (!hasAnyValidMove()) {
-        reshuffleBoard();
-      }
-      return;
-    }
-
-    // Runs of 4+ pop confetti; runs of 5+ promote their middle cell to a
-    // Super Gem instead of clearing it.
-    const superCells = new Set(); // "r,c" chosen to become Super Gems
-    const confettiSpots = [];
-    groups.forEach(g => {
-      const mid = g.cells[Math.floor(g.cells.length / 2)];
-      const midCell = grid[mid.r][mid.c];
-      if (g.cells.length >= 4) confettiSpots.push({ x: midCell.x, y: midCell.y });
-      if (g.cells.length >= 5) superCells.add(mid.r + ',' + mid.c);
-    });
-
-    const matchedSet = new Set();
-    groups.forEach(g => g.cells.forEach(({ r, c }) => matchedSet.add(r + ',' + c)));
-    const toClear = new Set(Array.from(matchedSet).filter(k => !superCells.has(k)));
-
-    // Score per-group using each run's own length, rather than the whole pass at once.
-    let points = 0;
-    groups.forEach(g => { points += scoreForMatch(g.cells.length); });
-    addScore(points, comboLevel);
-
-    if (confettiSpots.length) spawnConfetti(confettiSpots, false);
-
-    // shrink-out animation for cleared cells (cells promoted to Super Gems are left alone)
-    const matchedCells = Array.from(toClear).map(key => {
-      const [r, c] = key.split(',').map(Number);
-      return grid[r][c];
-    });
-
-    tween(CLEAR_MS, (eased) => {
-      matchedCells.forEach(cell => {
-        cell.scale = 1 - eased;
-        cell.alpha = 1 - eased;
-      });
-    }, () => {
-      toClear.forEach(key => {
-        const [r, c] = key.split(',').map(Number);
-        grid[r][c] = null;
-      });
-      superCells.forEach(key => {
-        const [r, c] = key.split(',').map(Number);
-        const cell = grid[r][c];
-        if (cell) { cell.super = true; cell.scale = 1; cell.alpha = 1; }
-      });
-      collapseAndRefill(comboLevel + 1);
-    });
-  }
-
-  function collapseAndRefill(nextComboLevel) {
-    // compute drop distances per column
-    const fallInfo = []; // {cell, fromRow, toRow, col}
-    for (let c = 0; c < COLS; c++) {
-      let writeRow = ROWS - 1;
-      for (let r = ROWS - 1; r >= 0; r--) {
-        if (grid[r][c]) {
-          if (writeRow !== r) {
-            const cell = grid[r][c];
-            grid[writeRow][c] = cell;
-            grid[r][c] = null;
-            const fromY = r * CELL + CELL / 2;
-            const toY = writeRow * CELL + CELL / 2;
-            cell.row = writeRow;
-            cell.y = toY;                 // final resting position, updated immediately
-            cell.offsetY = fromY - toY;   // start offset so it animates in from its old slot
-            fallInfo.push({ cell, fromY, toY });
+        // ---------- Asset loading ----------
+        const images = [];
+        let superImage = null;
+        let imagesLoaded = 0;
+        function loadImages(cb) {
+          const total = GEM_PATHS.length + 1; // gems + super
+          function onOne() {
+            imagesLoaded++;
+            if (imagesLoaded === total) cb();
           }
-          writeRow--;
+          GEM_PATHS.forEach((src, i) => {
+            const img = new Image();
+            img.onload = img.onerror = onOne;
+            img.src = src;
+            images[i] = img;
+          });
+          superImage = new Image();
+          superImage.onload = superImage.onerror = onOne;
+          superImage.src = SUPER_PATH;
         }
-      }
-      // fill remaining empty slots above with new gems, staged above the board
-      for (let r = writeRow; r >= 0; r--) {
-        const type = randType();
-        const cell = makeCell(r, c, type);
-        const spawnAboveRows = (writeRow - r + 1);
-        cell.y = r * CELL + CELL / 2; // final resting position
-        cell.offsetY = -(spawnAboveRows) * CELL; // start above the board
-        grid[r][c] = cell;
-        fallInfo.push({ cell, fromY: cell.y + cell.offsetY, toY: cell.y, spawn: true });
-      }
-    }
 
-    if (fallInfo.length === 0) {
-      resolveBoard(nextComboLevel);
-      return;
-    }
-
-    const maxDrop = Math.max(...fallInfo.map(f => Math.abs(f.toY - f.fromY)));
-    const duration = Math.max(180, (maxDrop / CELL) * FALL_MS_PER_CELL + 120);
-
-    fallInfo.forEach(f => { f.startOffsetY = f.cell.offsetY !== 0 ? f.cell.offsetY : (f.fromY - f.toY); });
-
-    tween(duration, (eased) => {
-      fallInfo.forEach(f => {
-        f.cell.offsetY = f.startOffsetY * (1 - eased);
-      });
-    }, () => {
-      fallInfo.forEach(f => { f.cell.offsetY = 0; });
-      resolveBoard(nextComboLevel);
-    });
-  }
-
-  function reshuffleBoard() {
-    inputLocked = true;
-    msgTextEl.textContent = 'No moves left — reshuffling...';
-    msgEl.style.display = 'flex';
-    tween(300, (eased) => {
-      for (let r = 0; r < ROWS; r++)
-        for (let c = 0; c < COLS; c++)
-          grid[r][c].alpha = 1 - eased;
-    }, () => {
-      // shuffle types among existing cells until valid & match-free
-      let attempts = 0;
-      do {
-        const types = [];
-        for (let r = 0; r < ROWS; r++)
-          for (let c = 0; c < COLS; c++)
-            types.push(grid[r][c].type);
-        for (let i = types.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [types[i], types[j]] = [types[j], types[i]];
+        function drawGemImage(img, type, cx, cy, scale, alpha) {
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          const size = (CELL - 8) * scale;
+          if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
+          } else {
+            // Fallback if a PNG is missing/broken: colored circle so game still works
+            const fallbackColors = ['#F0B90B', '#FFDE7A', '#B8860B', '#8a6d1f', '#D4AF37', '#5c4a1a'];
+            ctx.beginPath();
+            ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+            ctx.fillStyle = fallbackColors[type % fallbackColors.length];
+            ctx.fill();
+          }
+          ctx.restore();
         }
-        let idx = 0;
-        for (let r = 0; r < ROWS; r++)
-          for (let c = 0; c < COLS; c++)
-            grid[r][c].type = types[idx++];
-        attempts++;
-      } while ((findAllMatches().size > 0 || !hasAnyValidMove()) && attempts < 200);
 
-      tween(300, (eased) => {
-        for (let r = 0; r < ROWS; r++)
-          for (let c = 0; c < COLS; c++)
-            grid[r][c].alpha = eased;
-      }, () => {
-        msgEl.style.display = 'none';
-        inputLocked = false;
-      });
-    });
-  }
+        function drawStarPath(cx, cy, points, outerR, innerR) {
+          ctx.beginPath();
+          for (let i = 0; i < points * 2; i++) {
+            const r = i % 2 === 0 ? outerR : innerR;
+            const angle = (Math.PI / points) * i - Math.PI / 2;
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+        }
 
-  // ---------- Input ----------
-  function cellFromEvent(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-    const col = Math.floor(x / CELL);
-    const row = Math.floor(y / CELL);
-    if (!inBounds(row, col)) return null;
-    return { row, col };
-  }
+        function drawSuperGem(cx, cy, scale, alpha) {
+          if (superImage && superImage.complete && superImage.naturalWidth > 0) {
+            drawGemImage(superImage, 0, cx, cy, scale, alpha);
+            return;
+          }
+          // Procedural fallback: pulsing gold glow behind a gold star
+          const pulse = 1 + 0.08 * Math.sin(performance.now() / 220);
+          const size = (CELL - 6) * scale * pulse;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, size * 0.75);
+          grad.addColorStop(0, '#FFF6D0');
+          grad.addColorStop(0.4, '#F0B90B');
+          grad.addColorStop(1, 'rgba(240,185,11,0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, size * 0.75, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#0a0906';
+          ctx.strokeStyle = '#FFDE7A';
+          ctx.lineWidth = 2;
+          drawStarPath(cx, cy, 5, size * 0.42, size * 0.2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
 
-  function isAdjacent(a, b) {
-    return (a.row === b.row && Math.abs(a.col - b.col) === 1) ||
-           (a.col === b.col && Math.abs(a.row - b.row) === 1);
-  }
+        // ---------- Confetti particles ----------
+        function spawnConfetti(spots, big) {
+          const count = big ? 10 : 6;
+          spots.forEach(spot => {
+            for (let i = 0; i < count; i++) {
+              const angle = Math.random() * Math.PI * 2;
+              const speed = 60 + Math.random() * 90;
+              particles.push({
+                x: spot.x, y: spot.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 40,
+                life: 0,
+                maxLife: 500 + Math.random() * 300,
+                size: 3 + Math.random() * 3,
+                color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+                rotation: Math.random() * Math.PI * 2,
+                spin: (Math.random() - 0.5) * 10
+              });
+            }
+          });
+        }
 
-  function trySwap(a, b, isRetry) {
-    inputLocked = true;
-    const cellA = grid[a.row][a.col];
-    const cellB = grid[b.row][b.col];
+        function updateParticles(dt) {
+          if (particles.length === 0) return;
+          const dtS = dt / 1000;
+          particles.forEach(p => {
+            p.life += dt;
+            p.vy += GRAVITY * dtS;
+            p.x += p.vx * dtS;
+            p.y += p.vy * dtS;
+            p.rotation += p.spin * dtS;
+          });
+          particles = particles.filter(p => p.life < p.maxLife);
+        }
 
-    const ax = cellA.x, ay = cellA.y, bx = cellB.x, by = cellB.y;
+        // ---------- Grid helpers ----------
+        function randType() { return Math.floor(Math.random() * GEM_TYPES); }
 
-    tween(SWAP_MS, (eased) => {
-      cellA.offsetX = (bx - ax) * eased;
-      cellA.offsetY = (by - ay) * eased;
-      cellB.offsetX = (ax - bx) * eased;
-      cellB.offsetY = (ay - by) * eased;
-    }, () => {
-      // commit swap in data model
-      grid[a.row][a.col] = cellB;
-      grid[b.row][b.col] = cellA;
-      cellA.row = b.row; cellA.col = b.col; cellA.x = bx; cellA.y = by; cellA.offsetX = 0; cellA.offsetY = 0;
-      cellB.row = a.row; cellB.col = a.col; cellB.x = ax; cellB.y = ay; cellB.offsetX = 0; cellB.offsetY = 0;
+        function makeCell(row, col, type) {
+          return {
+            type,
+            row, col,
+            x: col * CELL + CELL / 2,
+            y: row * CELL + CELL / 2,
+            offsetX: 0, offsetY: 0,
+            scale: 1, alpha: 1,
+            falling: false
+          };
+        }
 
-      const matched = findAllMatches();
-      if (matched.size === 0 && !isRetry) {
-        // invalid move: swap back
-        trySwap(b, a, true);
-      } else if (matched.size === 0 && isRetry) {
-        inputLocked = false;
-      } else {
-        resolveBoard(1);
-      }
-    });
-  }
+        function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
 
-  function performSuperSwap(a, b) {
-    inputLocked = true;
-    const cellA = grid[a.row][a.col];
-    const cellB = grid[b.row][b.col];
+        // Effective type for matching purposes: a super gem is unique per-cell so it
+        // never auto-matches with anything, including another super gem.
+        function typeOf(cell, r, c) {
+          if (!cell) return null;
+          return cell.super ? ('S' + r + '_' + c) : cell.type;
+        }
 
-    const ax = cellA.x, ay = cellA.y, bx = cellB.x, by = cellB.y;
+        function wouldMatchAt(r, c, type) {
+          // horizontal
+          let h = 1;
+          for (let cc = c - 1; cc >= 0 && grid[r][cc] && grid[r][cc].type === type; cc--) h++;
+          for (let cc = c + 1; cc < COLS && grid[r][cc] && grid[r][cc].type === type; cc++) h++;
+          if (h >= 3) return true;
+          // vertical
+          let v = 1;
+          for (let rr = r - 1; rr >= 0 && grid[rr] && grid[rr][c] && grid[rr][c].type === type; rr--) v++;
+          for (let rr = r + 1; rr < ROWS && grid[rr] && grid[rr][c] && grid[rr][c].type === type; rr++) v++;
+          return v >= 3;
+        }
 
-    tween(SWAP_MS, (eased) => {
-      cellA.offsetX = (bx - ax) * eased;
-      cellA.offsetY = (by - ay) * eased;
-      cellB.offsetX = (ax - bx) * eased;
-      cellB.offsetY = (ay - by) * eased;
-    }, () => {
-      // commit swap in data model
-      grid[a.row][a.col] = cellB;
-      grid[b.row][b.col] = cellA;
-      cellA.row = b.row; cellA.col = b.col; cellA.x = bx; cellA.y = by; cellA.offsetX = 0; cellA.offsetY = 0;
-      cellB.row = a.row; cellB.col = a.col; cellB.x = ax; cellB.y = ay; cellB.offsetX = 0; cellB.offsetY = 0;
-
-      const bothSuper = cellA.super && cellB.super;
-      const targetType = bothSuper ? null : (cellA.super ? cellB.type : cellA.type);
-
-      const toClear = [];
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const cell = grid[r][c];
-          if (!cell) continue;
-          if (bothSuper || cell === cellA || cell === cellB || (!cell.super && cell.type === targetType)) {
-            toClear.push(cell);
+        function buildInitialGrid() {
+          grid = [];
+          for (let r = 0; r < ROWS; r++) {
+            grid.push([]);
+            for (let c = 0; c < COLS; c++) {
+              let type;
+              do { type = randType(); } while (wouldMatchAt(r, c, type));
+              grid[r].push(makeCell(r, c, type));
+            }
           }
         }
-      }
 
-      spawnConfetti(toClear.map(cell => ({ x: cell.x, y: cell.y })), true);
-      addScore(toClear.length * 20, 1);
-
-      tween(CLEAR_MS, (eased) => {
-        toClear.forEach(cell => { cell.scale = 1 - eased; cell.alpha = 1 - eased; });
-      }, () => {
-        toClear.forEach(cell => { grid[cell.row][cell.col] = null; });
-        collapseAndRefill(2);
-      });
-    });
-  }
-
-  canvas.addEventListener('click', (e) => {
-    if (!gameStarted || inputLocked || animating) return;
-    const cell = cellFromEvent(e);
-    if (!cell) return;
-
-    if (!selected) {
-      selected = cell;
-      return;
-    }
-    if (selected.row === cell.row && selected.col === cell.col) {
-      selected = null;
-      return;
-    }
-    if (isAdjacent(selected, cell)) {
-      const a = selected, b = cell;
-      selected = null;
-      const cellA = grid[a.row][a.col], cellB = grid[b.row][b.col];
-      if (cellA.super || cellB.super) {
-        performSuperSwap(a, b);
-      } else {
-        trySwap(a, b, false);
-      }
-    } else {
-      selected = cell;
-    }
-  });
-
-  // ---------- Game Helpers ----------
-  function formatTime(secs) {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
-
-  function startTimer() {
-    stopTimer();
-    timerEl.textContent = formatTime(timeLeft);
-    timerInterval = setInterval(() => {
-      timeLeft--;
-      if (timeLeft < 0) timeLeft = 0;
-      timerEl.textContent = formatTime(timeLeft);
-      if (timeLeft <= 0) {
-        stopTimer();
-        if (!inputLocked) {
-          triggerGameOver();
+        // Returns each contiguous run (length >= 3) separately, horizontal and
+        // vertical, so callers can react to run length (confetti at 4+, super gem at 5+).
+        function findMatchGroups() {
+          const groups = [];
+          // horizontal runs
+          for (let r = 0; r < ROWS; r++) {
+            let runStart = 0;
+            for (let c = 1; c <= COLS; c++) {
+              const prevType = typeOf(grid[r][c - 1], r, c - 1);
+              const curType = c < COLS ? typeOf(grid[r][c], r, c) : null;
+              if (curType !== prevType) {
+                if (c - runStart >= 3) {
+                  const cells = [];
+                  for (let k = runStart; k < c; k++) cells.push({ r, c: k });
+                  groups.push({ cells });
+                }
+                runStart = c;
+              }
+            }
+          }
+          // vertical runs
+          for (let c = 0; c < COLS; c++) {
+            let runStart = 0;
+            for (let r = 1; r <= ROWS; r++) {
+              const prevType = typeOf(grid[r - 1][c], r - 1, c);
+              const curType = r < ROWS ? typeOf(grid[r][c], r, c) : null;
+              if (curType !== prevType) {
+                if (r - runStart >= 3) {
+                  const cells = [];
+                  for (let k = runStart; k < r; k++) cells.push({ r: k, c });
+                  groups.push({ cells });
+                }
+                runStart = r;
+              }
+            }
+          }
+          return groups;
         }
-      }
-    }, 1000);
-  }
 
-  function stopTimer() {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-  }
+        function findAllMatches() {
+          const matched = new Set(); // "r,c"
+          findMatchGroups().forEach(g => g.cells.forEach(({ r, c }) => matched.add(r + ',' + c)));
+          return matched;
+        }
 
-  function startRound() {
-    stopTimer();
-    score = 0;
-    scoreEl.textContent = score;
+        function hasAnyValidMove() {
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              if (grid[r][c] && grid[r][c].super) return true;
+            }
+          }
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              if (c < COLS - 1) {
+                swapTypesInMemory(r, c, r, c + 1);
+                const m = findAllMatches();
+                swapTypesInMemory(r, c, r, c + 1);
+                if (m.size > 0) return true;
+              }
+              if (r < ROWS - 1) {
+                swapTypesInMemory(r, c, r + 1, c);
+                const m = findAllMatches();
+                swapTypesInMemory(r, c, r + 1, c);
+                if (m.size > 0) return true;
+              }
+            }
+          }
+          return false;
+        }
 
-    targetGoal = 5000 + (currentRound - 1) * 100;
-    timeLeft = Math.max(10, 300 - (currentRound - 1) * 10);
+        function swapTypesInMemory(r1, c1, r2, c2) {
+          const t = grid[r1][c1].type;
+          grid[r1][c1].type = grid[r2][c2].type;
+          grid[r2][c2].type = t;
+        }
 
-    goalEl.textContent = targetGoal;
-    roundEl.textContent = currentRound;
-    timerEl.textContent = formatTime(timeLeft);
-    cumScoreEl.textContent = cumulativeScore;
+        // ---------- Animation engine ----------
+        function tween(duration, onUpdate, onDone) {
+          const start = performance.now();
+          function frame(now) {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOutQuad
+            onUpdate(eased, t);
+            if (t < 1) requestAnimationFrame(frame);
+            else onDone && onDone();
+          }
+          requestAnimationFrame(frame);
+        }
 
-    goalContainer.style.display = 'inline';
-    roundContainer.style.display = 'block';
-    timerContainer.style.display = 'block';
-    cumScoreContainer.style.display = 'block';
+        function render() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          // grid lines / cell backdrop
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              ctx.fillStyle = (r + c) % 2 === 0 ? '#1c1810' : '#15130d';
+              ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
+            }
+          }
+          // selection highlight
+          if (selected) {
+            ctx.strokeStyle = '#F0B90B';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(selected.col * CELL + 2, selected.row * CELL + 2, CELL - 4, CELL - 4);
+          }
+          // gems
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              const cell = grid[r][c];
+              if (!cell) continue;
+              const cx = cell.x + cell.offsetX;
+              const cy = cell.y + cell.offsetY;
+              if (cell.super) {
+                drawSuperGem(cx, cy, cell.scale, cell.alpha);
+              } else {
+                drawGemImage(images[cell.type], cell.type, cx, cy, cell.scale, cell.alpha);
+              }
+            }
+          }
+          // confetti
+          particles.forEach(p => {
+            const t = p.life / p.maxLife;
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, 1 - t);
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+            ctx.restore();
+          });
+        }
 
-    buildInitialGrid();
-    inputLocked = false;
-    startTimer();
-  }
+        let renderLoopRunning = false;
+        let lastFrameTime = null;
+        function startRenderLoop() {
+          if (renderLoopRunning) return;
+          renderLoopRunning = true;
+          function loop(now) {
+            if (lastFrameTime === null) lastFrameTime = now;
+            updateParticles(now - lastFrameTime);
+            lastFrameTime = now;
+            render();
+            requestAnimationFrame(loop);
+          }
+          requestAnimationFrame(loop);
+        }
 
-  function triggerRoundCleared() {
-    stopTimer();
-    inputLocked = true;
-    cumulativeScore += score;
+        // ---------- Score / combo UI ----------
+        function addScore(points, comboLevel) {
+          score += points;
+          scoreEl.textContent = score;
+          if (gameMode === 'infinite') {
+            if (score > bestInfinite) {
+              bestInfinite = score;
+              bestEl.textContent = bestInfinite;
+              localStorage.setItem('ccc_best_infinite', String(bestInfinite));
+              localStorage.setItem('ccc_best', String(bestInfinite));
+            }
+          } else {
+            const currentTotal = cumulativeScore + score;
+            if (currentTotal > bestChallenge) {
+              bestChallenge = currentTotal;
+              bestEl.textContent = bestChallenge;
+              localStorage.setItem('ccc_best_challenge', String(bestChallenge));
+            }
+          }
+          if (comboLevel > 1) {
+            comboEl.textContent = `COMBO x${comboLevel}`;
+            comboEl.style.opacity = '1';
+            clearTimeout(addScore._t);
+            addScore._t = setTimeout(() => comboEl.style.opacity = '0', 900);
+          }
+        }
 
-    clearTitle.textContent = `Round ${currentRound} Cleared!`;
-    clearStats.innerHTML = `Round Score: ${score} / ${targetGoal}<br>Time Remaining: ${formatTime(timeLeft)}<br>Total Score: ${cumulativeScore}`;
-    clearScreen.style.display = 'flex';
-  }
+        function scoreForMatch(size) {
+          if (size <= 3) return 30;
+          if (size === 4) return 60;
+          return 100 + (size - 5) * 40;
+        }
 
-  function triggerGameOver() {
-    stopTimer();
-    inputLocked = true;
-    cumulativeScore += score;
+        // ---------- Core resolve loop (clear -> collapse -> refill -> re-check) ----------
+        function resolveBoard(comboLevel) {
+          const groups = findMatchGroups();
+          if (groups.length === 0) {
+            if (gameMode === 'challenge') {
+              if (score >= targetGoal) {
+                triggerRoundCleared();
+                return;
+              } else if (timeLeft <= 0) {
+                triggerGameOver();
+                return;
+              }
+            }
+            inputLocked = false;
+            // ensure a move exists; if not, reshuffle to keep the round infinite
+            if (!hasAnyValidMove()) {
+              reshuffleBoard();
+            }
+            return;
+          }
 
-    gameOverTitle.textContent = `Challenge Failed`;
-    gameOverStats.innerHTML = `Completed: ${currentRound - 1} Round${currentRound - 1 === 1 ? '' : 's'}<br>Final Score: ${cumulativeScore}`;
-    gameOverScreen.style.display = 'flex';
-  }
+          // Runs of 4+ pop confetti; runs of 5+ promote their middle cell to a
+          // Super Gem instead of clearing it.
+          const superCells = new Set(); // "r,c" chosen to become Super Gems
+          const confettiSpots = [];
+          groups.forEach(g => {
+            const mid = g.cells[Math.floor(g.cells.length / 2)];
+            const midCell = grid[mid.r][mid.c];
+            if (g.cells.length >= 4) confettiSpots.push({ x: midCell.x, y: midCell.y });
+            if (g.cells.length >= 5) superCells.add(mid.r + ',' + mid.c);
+          });
 
-  // ---------- Boot ----------
-  modeChallengeCard.addEventListener('click', () => {
-    selectedMode = 'challenge';
-    modeChallengeCard.classList.add('active');
-    modeInfiniteCard.classList.remove('active');
-    bestEl.textContent = bestChallenge;
-  });
+          const matchedSet = new Set();
+          groups.forEach(g => g.cells.forEach(({ r, c }) => matchedSet.add(r + ',' + c)));
+          const toClear = new Set(Array.from(matchedSet).filter(k => !superCells.has(k)));
 
-  modeInfiniteCard.addEventListener('click', () => {
-    selectedMode = 'infinite';
-    modeInfiniteCard.classList.add('active');
-    modeChallengeCard.classList.remove('active');
-    bestEl.textContent = bestInfinite;
-  });
+          // Score per-group using each run's own length, rather than the whole pass at once.
+          let points = 0;
+          groups.forEach(g => { points += scoreForMatch(g.cells.length); });
+          addScore(points, comboLevel);
 
-  startBtn.addEventListener('click', () => {
-    startScreen.style.display = 'none';
-    gameMode = selectedMode;
-    gameStarted = true;
-    startRenderLoop();
+          if (confettiSpots.length) spawnConfetti(confettiSpots, false);
 
-    if (gameMode === 'challenge') {
-      currentRound = 1;
-      cumulativeScore = 0;
-      startRound();
-    } else {
-      // Infinite Mode
-      goalContainer.style.display = 'none';
-      roundContainer.style.display = 'none';
-      timerContainer.style.display = 'none';
-      cumScoreContainer.style.display = 'none';
-      
-      score = 0;
-      scoreEl.textContent = score;
-      buildInitialGrid();
-      inputLocked = false;
-    }
-  });
+          // shrink-out animation for cleared cells (cells promoted to Super Gems are left alone)
+          const matchedCells = Array.from(toClear).map(key => {
+            const [r, c] = key.split(',').map(Number);
+            return grid[r][c];
+          });
 
-  nextRoundBtn.addEventListener('click', () => {
-    clearScreen.style.display = 'none';
-    currentRound++;
-    startRound();
-  });
+          tween(CLEAR_MS, (eased) => {
+            matchedCells.forEach(cell => {
+              cell.scale = 1 - eased;
+              cell.alpha = 1 - eased;
+            });
+          }, () => {
+            toClear.forEach(key => {
+              const [r, c] = key.split(',').map(Number);
+              grid[r][c] = null;
+            });
+            superCells.forEach(key => {
+              const [r, c] = key.split(',').map(Number);
+              const cell = grid[r][c];
+              if (cell) { cell.super = true; cell.scale = 1; cell.alpha = 1; }
+            });
+            collapseAndRefill(comboLevel + 1);
+          });
+        }
 
-  retryBtn.addEventListener('click', () => {
-    gameOverScreen.style.display = 'none';
-    currentRound = 1;
-    cumulativeScore = 0;
-    startRound();
-  });
+        function collapseAndRefill(nextComboLevel) {
+          // compute drop distances per column
+          const fallInfo = []; // {cell, fromRow, toRow, col}
+          for (let c = 0; c < COLS; c++) {
+            let writeRow = ROWS - 1;
+            for (let r = ROWS - 1; r >= 0; r--) {
+              if (grid[r][c]) {
+                if (writeRow !== r) {
+                  const cell = grid[r][c];
+                  grid[writeRow][c] = cell;
+                  grid[r][c] = null;
+                  const fromY = r * CELL + CELL / 2;
+                  const toY = writeRow * CELL + CELL / 2;
+                  cell.row = writeRow;
+                  cell.y = toY;                 // final resting position, updated immediately
+                  cell.offsetY = fromY - toY;   // start offset so it animates in from its old slot
+                  fallInfo.push({ cell, fromY, toY });
+                }
+                writeRow--;
+              }
+            }
+            // fill remaining empty slots above with new gems, staged above the board
+            for (let r = writeRow; r >= 0; r--) {
+              const type = randType();
+              const cell = makeCell(r, c, type);
+              const spawnAboveRows = (writeRow - r + 1);
+              cell.y = r * CELL + CELL / 2; // final resting position
+              cell.offsetY = -(spawnAboveRows) * CELL; // start above the board
+              grid[r][c] = cell;
+              fallInfo.push({ cell, fromY: cell.y + cell.offsetY, toY: cell.y, spawn: true });
+            }
+          }
 
-  menuBtn.addEventListener('click', () => {
-    gameOverScreen.style.display = 'none';
-    startScreen.style.display = 'flex';
-    gameStarted = false;
-    inputLocked = true;
-    bestEl.textContent = selectedMode === 'challenge' ? bestChallenge : bestInfinite;
-  });
+          if (fallInfo.length === 0) {
+            resolveBoard(nextComboLevel);
+            return;
+          }
 
-  loadImages(() => {
-    buildInitialGrid();
-    render(); // static preview visible behind the start screen
-  });
-})();
-</script>
-</body>
+          const maxDrop = Math.max(...fallInfo.map(f => Math.abs(f.toY - f.fromY)));
+          const duration = Math.max(180, (maxDrop / CELL) * FALL_MS_PER_CELL + 120);
+
+          fallInfo.forEach(f => { f.startOffsetY = f.cell.offsetY !== 0 ? f.cell.offsetY : (f.fromY - f.toY); });
+
+          tween(duration, (eased) => {
+            fallInfo.forEach(f => {
+              f.cell.offsetY = f.startOffsetY * (1 - eased);
+            });
+          }, () => {
+            fallInfo.forEach(f => { f.cell.offsetY = 0; });
+            resolveBoard(nextComboLevel);
+          });
+        }
+
+        function reshuffleBoard() {
+          inputLocked = true;
+          msgTextEl.textContent = 'No moves left — reshuffling...';
+          msgEl.style.display = 'flex';
+          tween(300, (eased) => {
+            for (let r = 0; r < ROWS; r++)
+              for (let c = 0; c < COLS; c++)
+                grid[r][c].alpha = 1 - eased;
+          }, () => {
+            // shuffle types among existing cells until valid & match-free
+            let attempts = 0;
+            do {
+              const types = [];
+              for (let r = 0; r < ROWS; r++)
+                for (let c = 0; c < COLS; c++)
+                  types.push(grid[r][c].type);
+              for (let i = types.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [types[i], types[j]] = [types[j], types[i]];
+              }
+              let idx = 0;
+              for (let r = 0; r < ROWS; r++)
+                for (let c = 0; c < COLS; c++)
+                  grid[r][c].type = types[idx++];
+              attempts++;
+            } while ((findAllMatches().size > 0 || !hasAnyValidMove()) && attempts < 200);
+
+            tween(300, (eased) => {
+              for (let r = 0; r < ROWS; r++)
+                for (let c = 0; c < COLS; c++)
+                  grid[r][c].alpha = eased;
+            }, () => {
+              msgEl.style.display = 'none';
+              inputLocked = false;
+            });
+          });
+        }
+
+        // ---------- Input ----------
+        function cellFromEvent(e) {
+          const rect = canvas.getBoundingClientRect();
+          const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+          const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+          const col = Math.floor(x / CELL);
+          const row = Math.floor(y / CELL);
+          if (!inBounds(row, col)) return null;
+          return { row, col };
+        }
+
+        function isAdjacent(a, b) {
+          return (a.row === b.row && Math.abs(a.col - b.col) === 1) ||
+            (a.col === b.col && Math.abs(a.row - b.row) === 1);
+        }
+
+        function trySwap(a, b, isRetry) {
+          inputLocked = true;
+          const cellA = grid[a.row][a.col];
+          const cellB = grid[b.row][b.col];
+
+          const ax = cellA.x, ay = cellA.y, bx = cellB.x, by = cellB.y;
+
+          tween(SWAP_MS, (eased) => {
+            cellA.offsetX = (bx - ax) * eased;
+            cellA.offsetY = (by - ay) * eased;
+            cellB.offsetX = (ax - bx) * eased;
+            cellB.offsetY = (ay - by) * eased;
+          }, () => {
+            // commit swap in data model
+            grid[a.row][a.col] = cellB;
+            grid[b.row][b.col] = cellA;
+            cellA.row = b.row; cellA.col = b.col; cellA.x = bx; cellA.y = by; cellA.offsetX = 0; cellA.offsetY = 0;
+            cellB.row = a.row; cellB.col = a.col; cellB.x = ax; cellB.y = ay; cellB.offsetX = 0; cellB.offsetY = 0;
+
+            const matched = findAllMatches();
+            if (matched.size === 0 && !isRetry) {
+              // invalid move: swap back
+              trySwap(b, a, true);
+            } else if (matched.size === 0 && isRetry) {
+              inputLocked = false;
+            } else {
+              resolveBoard(1);
+            }
+          });
+        }
+
+        function performSuperSwap(a, b) {
+          inputLocked = true;
+          const cellA = grid[a.row][a.col];
+          const cellB = grid[b.row][b.col];
+
+          const ax = cellA.x, ay = cellA.y, bx = cellB.x, by = cellB.y;
+
+          tween(SWAP_MS, (eased) => {
+            cellA.offsetX = (bx - ax) * eased;
+            cellA.offsetY = (by - ay) * eased;
+            cellB.offsetX = (ax - bx) * eased;
+            cellB.offsetY = (ay - by) * eased;
+          }, () => {
+            // commit swap in data model
+            grid[a.row][a.col] = cellB;
+            grid[b.row][b.col] = cellA;
+            cellA.row = b.row; cellA.col = b.col; cellA.x = bx; cellA.y = by; cellA.offsetX = 0; cellA.offsetY = 0;
+            cellB.row = a.row; cellB.col = a.col; cellB.x = ax; cellB.y = ay; cellB.offsetX = 0; cellB.offsetY = 0;
+
+            const bothSuper = cellA.super && cellB.super;
+            const targetType = bothSuper ? null : (cellA.super ? cellB.type : cellA.type);
+
+            const toClear = [];
+            for (let r = 0; r < ROWS; r++) {
+              for (let c = 0; c < COLS; c++) {
+                const cell = grid[r][c];
+                if (!cell) continue;
+                if (bothSuper || cell === cellA || cell === cellB || (!cell.super && cell.type === targetType)) {
+                  toClear.push(cell);
+                }
+              }
+            }
+
+            spawnConfetti(toClear.map(cell => ({ x: cell.x, y: cell.y })), true);
+            addScore(toClear.length * 20, 1);
+
+            tween(CLEAR_MS, (eased) => {
+              toClear.forEach(cell => { cell.scale = 1 - eased; cell.alpha = 1 - eased; });
+            }, () => {
+              toClear.forEach(cell => { grid[cell.row][cell.col] = null; });
+              collapseAndRefill(2);
+            });
+          });
+        }
+
+        canvas.addEventListener('click', (e) => {
+          if (!gameStarted || inputLocked || animating) return;
+          const cell = cellFromEvent(e);
+          if (!cell) return;
+
+          if (!selected) {
+            selected = cell;
+            return;
+          }
+          if (selected.row === cell.row && selected.col === cell.col) {
+            selected = null;
+            return;
+          }
+          if (isAdjacent(selected, cell)) {
+            const a = selected, b = cell;
+            selected = null;
+            const cellA = grid[a.row][a.col], cellB = grid[b.row][b.col];
+            if (cellA.super || cellB.super) {
+              performSuperSwap(a, b);
+            } else {
+              trySwap(a, b, false);
+            }
+          } else {
+            selected = cell;
+          }
+        });
+
+        // ---------- Game Helpers ----------
+        function formatTime(secs) {
+          const m = Math.floor(secs / 60);
+          const s = secs % 60;
+          return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+          stopTimer();
+          timerEl.textContent = formatTime(timeLeft);
+          timerInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft < 0) timeLeft = 0;
+            timerEl.textContent = formatTime(timeLeft);
+            if (timeLeft <= 0) {
+              stopTimer();
+              if (!inputLocked) {
+                triggerGameOver();
+              }
+            }
+          }, 1000);
+        }
+
+        function stopTimer() {
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+        }
+
+        function startRound() {
+          stopTimer();
+          score = 0;
+          scoreEl.textContent = score;
+
+          targetGoal = 5000 + (currentRound - 1) * 100;
+          timeLeft = Math.max(10, 300 - (currentRound - 1) * 10);
+
+          goalEl.textContent = targetGoal;
+          roundEl.textContent = currentRound;
+          timerEl.textContent = formatTime(timeLeft);
+          cumScoreEl.textContent = cumulativeScore;
+
+          goalContainer.style.display = 'inline';
+          roundContainer.style.display = 'block';
+          timerContainer.style.display = 'block';
+          cumScoreContainer.style.display = 'block';
+
+          buildInitialGrid();
+          inputLocked = false;
+          startTimer();
+        }
+
+        function triggerRoundCleared() {
+          stopTimer();
+          inputLocked = true;
+          cumulativeScore += score;
+
+          clearTitle.textContent = `Round ${currentRound} Cleared!`;
+          clearStats.innerHTML = `Round Score: ${score} / ${targetGoal}<br>Time Remaining: ${formatTime(timeLeft)}<br>Total Score: ${cumulativeScore}`;
+          clearScreen.style.display = 'flex';
+        }
+
+        function triggerGameOver() {
+          stopTimer();
+          inputLocked = true;
+          cumulativeScore += score;
+
+          gameOverTitle.textContent = `Challenge Failed`;
+          gameOverStats.innerHTML = `Completed: ${currentRound - 1} Round${currentRound - 1 === 1 ? '' : 's'}<br>Final Score: ${cumulativeScore}`;
+          gameOverScreen.style.display = 'flex';
+        }
+
+        // ---------- Boot ----------
+        modeChallengeCard.addEventListener('click', () => {
+          selectedMode = 'challenge';
+          modeChallengeCard.classList.add('active');
+          modeInfiniteCard.classList.remove('active');
+          bestEl.textContent = bestChallenge;
+        });
+
+        modeInfiniteCard.addEventListener('click', () => {
+          selectedMode = 'infinite';
+          modeInfiniteCard.classList.add('active');
+          modeChallengeCard.classList.remove('active');
+          bestEl.textContent = bestInfinite;
+        });
+
+        startBtn.addEventListener('click', () => {
+          startScreen.style.display = 'none';
+          gameMode = selectedMode;
+          gameStarted = true;
+          startRenderLoop();
+
+          if (gameMode === 'challenge') {
+            currentRound = 1;
+            cumulativeScore = 0;
+            startRound();
+          } else {
+            // Infinite Mode
+            goalContainer.style.display = 'none';
+            roundContainer.style.display = 'none';
+            timerContainer.style.display = 'none';
+            cumScoreContainer.style.display = 'none';
+
+            score = 0;
+            scoreEl.textContent = score;
+            buildInitialGrid();
+            inputLocked = false;
+          }
+        });
+
+        nextRoundBtn.addEventListener('click', () => {
+          clearScreen.style.display = 'none';
+          currentRound++;
+          startRound();
+        });
+
+        retryBtn.addEventListener('click', () => {
+          gameOverScreen.style.display = 'none';
+          currentRound = 1;
+          cumulativeScore = 0;
+          startRound();
+        });
+
+        menuBtn.addEventListener('click', () => {
+          gameOverScreen.style.display = 'none';
+          startScreen.style.display = 'flex';
+          gameStarted = false;
+          inputLocked = true;
+          bestEl.textContent = selectedMode === 'challenge' ? bestChallenge : bestInfinite;
+        });
+
+        loadImages(() => {
+          buildInitialGrid();
+          render(); // static preview visible behind the start screen
+        });
+      })();
+    </script>
+  </body>
+
 </html>

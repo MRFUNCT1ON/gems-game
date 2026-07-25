@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Machinery Match!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0906;
+    --bg-panel: #15130d;
+    --panel-border: #33291a;
+    --accent: #F0B90B;
+    --accent-2: #FFDE7A;
+    --text: #f5f1e6;
+    --text-dim: #9c9483;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    background: radial-gradient(circle at 50% 0%, #221c10 0%, var(--bg-deep) 70%);
+    color: var(--text);
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #wrap { text-align: center; user-select: none; }
+  h1 {
+    margin: 0 0 4px;
+    font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  #liveBadge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  #liveBadge::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+  }
+  #hud {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 480px; margin: 0 auto 10px;
+    background: var(--bg-panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  #hud b { color: var(--text); font-size: 18px; font-family: 'Rajdhani', sans-serif; }
+  #combo {
+    color: var(--accent);
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  #boardHolder {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px var(--panel-border), 0 20px 60px rgba(0,0,0,0.7);
+  }
+  canvas { display: block; background: var(--bg-panel); }
+  #msg {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(10,9,6,0.88);
+    font-size: 20px; color: var(--accent);
+    letter-spacing: 1px;
+  }
+  #footer { margin-top: 10px; font-size: 12px; color: var(--text-dim); }
+  #startScreen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(10,9,6,0.94);
+    z-index: 5;
+    text-align: center;
+    padding: 20px;
+  }
+  #startScreen p {
+    color: var(--text-dim);
+    font-size: 13px;
+    max-width: 320px;
+    margin: 4px 0 20px;
+  }
+  #startBtn {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #0a0906;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 32px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform .1s ease;
+  }
+  #startBtn:hover { transform: scale(1.04); }
+  #startBtn:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="liveBadge">Live · Pulsechain · Gears</div>
+  <h1>Machinery Match!</h1>
+  <div id="hud">
+    <div>SCORE<br><b id="score">0</b></div>
+    <div id="combo">COMBO x1</div>
+    <div>BEST<br><b id="best">0</b></div>
+  </div>
+  <div id="boardHolder">
+    <canvas id="board"></canvas>
+    <div id="msg"><span id="msgText">Reshuffling...</span></div>
+    <div id="startScreen">
+      <div id="liveBadge">Live · Pulsechain · Gears</div>
+      <h1 style="margin-bottom:4px;">Machinery Match!</h1>
+      <p>Swap adjacent tokens to match 3 or more. Chain cascades for combo multipliers. The board never runs dry — it reshuffles automatically when no moves remain.</p>
+      <button id="startBtn">Start Game</button>
+    </div>
+  </div>
+  <div id="footer">Swap adjacent tokens to match 3+ • Infinite play • Drop your own PNGs in /gems to re-theme</div>
+</div>
+
+<script>
+(() => {
+  // ---------- Config ----------
+  const COLS = 8;
+  const ROWS = 8;
+  const CELL = 60;
+  const GEM_TYPES = 6;
+  const GEM_PATHS = Array.from({length: GEM_TYPES}, (_, i) => `gems/gem${i}.png`);
+  const SWAP_MS = 150;
+  const FALL_MS_PER_CELL = 60;
+  const CLEAR_MS = 180;
+
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  canvas.width = COLS * CELL;
+  canvas.height = ROWS * CELL;
+
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const comboEl = document.getElementById('combo');
+  const msgEl = document.getElementById('msg');
+  const msgTextEl = document.getElementById('msgText');
+  const startScreen = document.getElementById('startScreen');
+  const startBtn = document.getElementById('startBtn');
+
+  // ---------- State ----------
+  let grid = [];          // grid[row][col] = {type, x, y, offsetX, offsetY, scale, alpha}
+  let score = 0;
+  let best = Number(localStorage.getItem('ccc_best') || 0);
+  bestEl.textContent = best;
+  let selected = null;    // {row, col}
+  let animating = false;
+  let inputLocked = true; // stays locked until Start Game is pressed
+  let gameStarted = false;
+
+  // ---------- Asset loading ----------
+  const images = [];
+  let imagesLoaded = 0;
+  function loadImages(cb) {
+    GEM_TYPES && GEM_PATHS.forEach((src, i) => {
+      const img = new Image();
+      img.onload = img.onerror = () => {
+        imagesLoaded++;
+        if (imagesLoaded === GEM_PATHS.length) cb();
+      };
+      img.src = src;
+      images[i] = img;
+    });
+  }
+
+  function drawGemImage(img, type, cx, cy, scale, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const size = (CELL - 8) * scale;
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
+    } else {
+      // Fallback if a PNG is missing/broken: colored circle so game still works
+      const fallbackColors = ['#F0B90B', '#FFDE7A', '#B8860B', '#8a6d1f', '#D4AF37', '#5c4a1a'];
+      ctx.beginPath();
+      ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+      ctx.fillStyle = fallbackColors[type % fallbackColors.length];
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ---------- Grid helpers ----------
+  function randType() { return Math.floor(Math.random() * GEM_TYPES); }
+
+  function makeCell(row, col, type) {
+    return {
+      type,
+      row, col,
+      x: col * CELL + CELL / 2,
+      y: row * CELL + CELL / 2,
+      offsetX: 0, offsetY: 0,
+      scale: 1, alpha: 1,
+      falling: false
+    };
+  }
+
+  function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
+
+  function wouldMatchAt(r, c, type) {
+    // horizontal
+    let h = 1;
+    for (let cc = c - 1; cc >= 0 && grid[r][cc] && grid[r][cc].type === type; cc--) h++;
+    for (let cc = c + 1; cc < COLS && grid[r][cc] && grid[r][cc].type === type; cc++) h++;
+    if (h >= 3) return true;
+    // vertical
+    let v = 1;
+    for (let rr = r - 1; rr >= 0 && grid[rr][c] && grid[rr][c].type === type; rr--) v++;
+    for (let rr = r + 1; rr < ROWS && grid[rr][c] && grid[rr][c].type === type; rr++) v++;
+    return v >= 3;
+  }
+
+  function buildInitialGrid() {
+    grid = [];
+    for (let r = 0; r < ROWS; r++) {
+      grid.push([]);
+      for (let c = 0; c < COLS; c++) {
+        let type;
+        do { type = randType(); } while (wouldMatchAt(r, c, type));
+        grid[r].push(makeCell(r, c, type));
+      }
+    }
+  }
+
+  function findAllMatches() {
+    const matched = new Set(); // "r,c"
+    // horizontal runs
+    for (let r = 0; r < ROWS; r++) {
+      let runStart = 0;
+      for (let c = 1; c <= COLS; c++) {
+        const prevType = grid[r][c - 1] ? grid[r][c - 1].type : null;
+        const curType = c < COLS && grid[r][c] ? grid[r][c].type : null;
+        if (curType !== prevType) {
+          if (c - runStart >= 3) {
+            for (let k = runStart; k < c; k++) matched.add(r + ',' + k);
+          }
+          runStart = c;
+        }
+      }
+    }
+    // vertical runs
+    for (let c = 0; c < COLS; c++) {
+      let runStart = 0;
+      for (let r = 1; r <= ROWS; r++) {
+        const prevType = grid[r - 1][c] ? grid[r - 1][c].type : null;
+        const curType = r < ROWS && grid[r][c] ? grid[r][c].type : null;
+        if (curType !== prevType) {
+          if (r - runStart >= 3) {
+            for (let k = runStart; k < r; k++) matched.add(k + ',' + c);
+          }
+          runStart = r;
+        }
+      }
+    }
+    return matched;
+  }
+
+  function hasAnyValidMove() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (c < COLS - 1) {
+          swapTypesInMemory(r, c, r, c + 1);
+          const m = findAllMatches();
+          swapTypesInMemory(r, c, r, c + 1);
+          if (m.size > 0) return true;
+        }
+        if (r < ROWS - 1) {
+          swapTypesInMemory(r, c, r + 1, c);
+          const m = findAllMatches();
+          swapTypesInMemory(r, c, r + 1, c);
+          if (m.size > 0) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function swapTypesInMemory(r1, c1, r2, c2) {
+    const t = grid[r1][c1].type;
+    grid[r1][c1].type = grid[r2][c2].type;
+    grid[r2][c2].type = t;
+  }
+
+  // ---------- Animation engine ----------
+  function tween(duration, onUpdate, onDone) {
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOutQuad
+      onUpdate(eased, t);
+      if (t < 1) requestAnimationFrame(frame);
+      else onDone && onDone();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // grid lines / cell backdrop
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        ctx.fillStyle = (r + c) % 2 === 0 ? '#1c1810' : '#15130d';
+        ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
+      }
+    }
+    // selection highlight
+    if (selected) {
+      ctx.strokeStyle = '#F0B90B';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(selected.col * CELL + 2, selected.row * CELL + 2, CELL - 4, CELL - 4);
+    }
+    // gems
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = grid[r][c];
+        if (!cell) continue;
+        const cx = cell.x + cell.offsetX;
+        const cy = cell.y + cell.offsetY;
+        drawGemImage(images[cell.type], cell.type, cx, cy, cell.scale, cell.alpha);
+      }
+    }
+  }
+
+  let renderLoopRunning = false;
+  function startRenderLoop() {
+    if (renderLoopRunning) return;
+    renderLoopRunning = true;
+    function loop() {
+      render();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Score / combo UI ----------
+  function addScore(points, comboLevel) {
+    score += points;
+    scoreEl.textContent = score;
+    if (score > best) {
+      best = score;
+      bestEl.textContent = best;
+      localStorage.setItem('ccc_best', String(best));
+    }
+    if (comboLevel > 1) {
+      comboEl.textContent = `COMBO x${comboLevel}`;
+      comboEl.style.opacity = '1';
+      clearTimeout(addScore._t);
+      addScore._t = setTimeout(() => comboEl.style.opacity = '0', 900);
+    }
+  }
+
+  function scoreForMatch(size) {
+    if (size <= 3) return 30;
+    if (size === 4) return 60;
+    return 100 + (size - 5) * 40;
+  }
+
+  // ---------- Core resolve loop (clear -> collapse -> refill -> re-check) ----------
+  function resolveBoard(comboLevel) {
+    const matched = findAllMatches();
+    if (matched.size === 0) {
+      inputLocked = false;
+      // ensure a move exists; if not, reshuffle to keep the round infinite
+      if (!hasAnyValidMove()) {
+        reshuffleBoard();
+      }
+      return;
+    }
+
+    // Score by total cells cleared this pass, scaled per matched.size to
+    // reward larger simultaneous matches (approximates per-group scoring).
+    const points = scoreForMatch(matched.size) * Math.ceil(matched.size / 3);
+    addScore(points, comboLevel);
+
+    // shrink-out animation for matched cells
+    const matchedCells = Array.from(matched).map(key => {
+      const [r, c] = key.split(',').map(Number);
+      return grid[r][c];
+    });
+
+    tween(CLEAR_MS, (eased) => {
+      matchedCells.forEach(cell => {
+        cell.scale = 1 - eased;
+        cell.alpha = 1 - eased;
+      });
+    }, () => {
+      matched.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        grid[r][c] = null;
+      });
+      collapseAndRefill(comboLevel + 1);
+    });
+  }
+
+  function collapseAndRefill(nextComboLevel) {
+    // compute drop distances per column
+    const fallInfo = []; // {cell, fromRow, toRow, col}
+    for (let c = 0; c < COLS; c++) {
+      let writeRow = ROWS - 1;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (grid[r][c]) {
+          if (writeRow !== r) {
+            const cell = grid[r][c];
+            grid[writeRow][c] = cell;
+            grid[r][c] = null;
+            cell.row = writeRow;
+            fallInfo.push({ cell, fromY: r * CELL + CELL / 2, toY: writeRow * CELL + CELL / 2 });
+          }
+          writeRow--;
+        }
+      }
+      // fill remaining empty slots above with new gems, staged above the board
+      for (let r = writeRow; r >= 0; r--) {
+        const type = randType();
+        const cell = makeCell(r, c, type);
+        const spawnAboveRows = (writeRow - r + 1);
+        cell.y = r * CELL + CELL / 2; // final resting position
+        cell.offsetY = -(spawnAboveRows) * CELL; // start above the board
+        grid[r][c] = cell;
+        fallInfo.push({ cell, fromY: cell.y + cell.offsetY, toY: cell.y, spawn: true });
+      }
+    }
+
+    if (fallInfo.length === 0) {
+      resolveBoard(nextComboLevel);
+      return;
+    }
+
+    const maxDrop = Math.max(...fallInfo.map(f => Math.abs(f.toY - f.fromY)));
+    const duration = Math.max(180, (maxDrop / CELL) * FALL_MS_PER_CELL + 120);
+
+    fallInfo.forEach(f => { f.startOffsetY = f.cell.offsetY !== 0 ? f.cell.offsetY : (f.fromY - f.toY); });
+
+    tween(duration, (eased) => {
+      fallInfo.forEach(f => {
+        f.cell.offsetY = f.startOffsetY * (1 - eased);
+      });
+    }, () => {
+      fallInfo.forEach(f => { f.cell.offsetY = 0; });
+      resolveBoard(nextComboLevel);
+    });
+  }
+
+  function reshuffleBoard() {
+    inputLocked = true;
+    msgTextEl.textContent = 'No moves left — reshuffling...';
+    msgEl.style.display = 'flex';
+    tween(300, (eased) => {
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++)
+          grid[r][c].alpha = 1 - eased;
+    }, () => {
+      // shuffle types among existing cells until valid & match-free
+      let attempts = 0;
+      do {
+        const types = [];
+        for (let r = 0; r < ROWS; r++)
+          for (let c = 0; c < COLS; c++)
+            types.push(grid[r][c].type);
+        for (let i = types.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [types[i], types[j]] = [types[j], types[i]];
+        }
+        let idx = 0;
+        for (let r = 0; r < ROWS; r++)
+          for (let c = 0; c < COLS; c++)
+            grid[r][c].type = types[idx++];
+        attempts++;
+      } while ((findAllMatches().size > 0 || !hasAnyValidMove()) && attempts < 200);
+
+      tween(300, (eased) => {
+        for (let r = 0; r < ROWS; r++)
+          for (let c = 0; c < COLS; c++)
+            grid[r][c].alpha = eased;
+      }, () => {
+        msgEl.style.display = 'none';
+        inputLocked = false;
+      });
+    });
+  }
+
+  // ---------- Input ----------
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const col = Math.floor(x / CELL);
+    const row = Math.floor(y / CELL);
+    if (!inBounds(row, col)) return null;
+    return { row, col };
+  }
+
+  function isAdjacent(a, b) {
+    return (a.row === b.row && Math.abs(a.col - b.col) === 1) ||
+           (a.col === b.col && Math.abs(a.row - b.row) === 1);
+  }
+
+  function trySwap(a, b, isRetry) {
+    inputLocked = true;
+    const cellA = grid[a.row][a.col];
+    const cellB = grid[b.row][b.col];
+
+    const ax = cellA.x, ay = cellA.y, bx = cellB.x, by = cellB.y;
+
+    tween(SWAP_MS, (eased) => {
+      cellA.offsetX = (bx - ax) * eased;
+      cellA.offsetY = (by - ay) * eased;
+      cellB.offsetX = (ax - bx) * eased;
+      cellB.offsetY = (ay - by) * eased;
+    }, () => {
+      // commit swap in data model
+      grid[a.row][a.col] = cellB;
+      grid[b.row][b.col] = cellA;
+      cellA.row = b.row; cellA.col = b.col; cellA.x = bx; cellA.y = by; cellA.offsetX = 0; cellA.offsetY = 0;
+      cellB.row = a.row; cellB.col = a.col; cellB.x = ax; cellB.y = ay; cellB.offsetX = 0; cellB.offsetY = 0;
+
+      const matched = findAllMatches();
+      if (matched.size === 0 && !isRetry) {
+        // invalid move: swap back
+        trySwap(b, a, true);
+      } else if (matched.size === 0 && isRetry) {
+        inputLocked = false;
+      } else {
+        resolveBoard(1);
+      }
+    });
+  }
+
+  canvas.addEventListener('click', (e) => {
+    if (!gameStarted || inputLocked || animating) return;
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+
+    if (!selected) {
+      selected = cell;
+      return;
+    }
+    if (selected.row === cell.row && selected.col === cell.col) {
+      selected = null;
+      return;
+    }
+    if (isAdjacent(selected, cell)) {
+      const a = selected, b = cell;
+      selected = null;
+      trySwap(a, b, false);
+    } else {
+      selected = cell;
+    }
+  });
+
+  // ---------- Boot ----------
+  loadImages(() => {
+    buildInitialGrid();
+    render(); // static preview visible behind the start screen
+    startBtn.addEventListener('click', () => {
+      startScreen.style.display = 'none';
+      gameStarted = true;
+      inputLocked = false;
+      startRenderLoop();
+    }, { once: true });
+  });
+})();
+</script>
+</body>
+</html>

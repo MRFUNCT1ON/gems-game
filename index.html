@@ -232,8 +232,8 @@
     if (h >= 3) return true;
     // vertical
     let v = 1;
-    for (let rr = r - 1; rr >= 0 && grid[rr][c] && grid[rr][c].type === type; rr--) v++;
-    for (let rr = r + 1; rr < ROWS && grid[rr][c] && grid[rr][c].type === type; rr++) v++;
+    for (let rr = r - 1; rr >= 0 && grid[rr] && grid[rr][c] && grid[rr][c].type === type; rr--) v++;
+    for (let rr = r + 1; rr < ROWS && grid[rr] && grid[rr][c] && grid[rr][c].type === type; rr++) v++;
     return v >= 3;
   }
 

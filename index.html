@@ -430,8 +430,12 @@
             const cell = grid[r][c];
             grid[writeRow][c] = cell;
             grid[r][c] = null;
+            const fromY = r * CELL + CELL / 2;
+            const toY = writeRow * CELL + CELL / 2;
             cell.row = writeRow;
-            fallInfo.push({ cell, fromY: r * CELL + CELL / 2, toY: writeRow * CELL + CELL / 2 });
+            cell.y = toY;                 // final resting position, updated immediately
+            cell.offsetY = fromY - toY;   // start offset so it animates in from its old slot
+            fallInfo.push({ cell, fromY, toY });
           }
           writeRow--;
         }

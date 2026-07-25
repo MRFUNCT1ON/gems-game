@@ -36,7 +36,7 @@
     background-clip: text;
     color: transparent;
   }
-  #liveBadge {
+  .badge {
     display: inline-flex; align-items: center; gap: 6px;
     border: 1px solid var(--accent);
     border-radius: 20px;
@@ -48,7 +48,7 @@
     text-transform: uppercase;
     font-weight: 600;
   }
-  #liveBadge::before {
+  .badge::before {
     content: '';
     width: 6px; height: 6px; border-radius: 50%;
     background: var(--accent);
@@ -86,21 +86,31 @@
     letter-spacing: 1px;
   }
   #footer { margin-top: 10px; font-size: 12px; color: var(--text-dim); }
-  #startScreen {
+  .overlay {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(10,9,6,0.94);
+    background: rgba(10,9,6,0.96);
     z-index: 5;
     text-align: center;
     padding: 20px;
   }
-  #startScreen p {
+  .overlay h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+    letter-spacing: 1px;
+  }
+  .overlay p {
     color: var(--text-dim);
     font-size: 13px;
-    max-width: 320px;
+    max-width: 360px;
     margin: 4px 0 20px;
+    line-height: 1.5;
   }
-  #startBtn {
+  .game-btn {
     background: linear-gradient(90deg, var(--accent), var(--accent-2));
     color: #0a0906;
     border: none;
@@ -112,29 +122,126 @@
     letter-spacing: 1px;
     text-transform: uppercase;
     cursor: pointer;
-    transition: transform .1s ease;
+    transition: transform .1s ease, background .2s;
   }
-  #startBtn:hover { transform: scale(1.04); }
-  #startBtn:active { transform: scale(0.97); }
+  .game-btn:hover { transform: scale(1.04); }
+  .game-btn:active { transform: scale(0.97); }
+  .game-btn.secondary {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    margin-left: 8px;
+  }
+  .game-btn.secondary:hover {
+    border-color: var(--text-dim);
+    color: var(--text);
+  }
+  .mode-selection {
+    display: flex;
+    gap: 12px;
+    margin: 10px 0 20px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .mode-card {
+    flex: 1;
+    background: rgba(21, 19, 13, 0.6);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .mode-card:hover {
+    border-color: var(--accent-2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(240, 185, 11, 0.15);
+  }
+  .mode-card.active {
+    border-color: var(--accent);
+    background: rgba(240, 185, 11, 0.08);
+    box-shadow: 0 0 15px rgba(240, 185, 11, 0.25);
+  }
+  .mode-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .mode-card.active .mode-title {
+    color: var(--accent-2);
+  }
+  .mode-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .hud-sub {
+    font-size: 10px;
+    color: var(--accent-2);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-top: 2px;
+  }
 </style>
 </head>
 <body>
 <div id="wrap">
-  <div id="liveBadge">Live · Pulsechain · Gears</div>
+  <div class="badge">Live · Pulsechain · Gears</div>
   <h1>Machinery Match!</h1>
   <div id="hud">
-    <div>SCORE<br><b id="score">0</b></div>
+    <div>SCORE<br><b id="score">0</b><span id="goalContainer" style="display:none;"> / <span id="goal">5000</span></span></div>
+    <div id="roundContainer" style="display:none;">ROUND<br><b id="round">1</b></div>
     <div id="combo">COMBO x1</div>
-    <div>BEST<br><b id="best">0</b></div>
+    <div id="timerContainer" style="display:none;">TIME<br><b id="timer">05:00</b></div>
+    <div>BEST<br><b id="best">0</b><span id="cumScoreContainer" class="hud-sub" style="display:none;">TOTAL: <span id="cumScore">0</span></span></div>
   </div>
   <div id="boardHolder">
     <canvas id="board"></canvas>
     <div id="msg"><span id="msgText">Reshuffling...</span></div>
-    <div id="startScreen">
-      <div id="liveBadge">Live · Pulsechain · Gears</div>
+    <div id="startScreen" class="overlay">
+      <div class="badge">Live · Pulsechain · Gears</div>
       <h1 style="margin-bottom:4px;">Machinery Match!</h1>
-      <p>Swap adjacent tokens to match 3 or more. Chain cascades for combo multipliers. The board never runs dry — it reshuffles automatically when no moves remain.</p>
-      <button id="startBtn">Start Game</button>
+      <p style="margin-bottom:12px;">Swap adjacent tokens to match 3 or more. Chain cascades for combo multipliers. The board never runs dry — it reshuffles automatically when no moves remain.</p>
+      <div class="mode-selection">
+        <div class="mode-card active" id="modeChallenge">
+          <div class="mode-title">Challenge Mode</div>
+          <div class="mode-desc">Race the clock! Reach 5000 points in 5 mins. Succeed to face faster, harder rounds.</div>
+        </div>
+        <div class="mode-card" id="modeInfinite">
+          <div class="mode-title">Infinite Mode</div>
+          <div class="mode-desc">Relaxed play. No timers, no targets. The classic endless experience.</div>
+        </div>
+      </div>
+      <button id="startBtn" class="game-btn">Start Game</button>
+    </div>
+
+    <!-- Round Cleared Overlay -->
+    <div id="clearScreen" class="overlay" style="display:none;">
+      <div class="badge">Round Cleared</div>
+      <h2 id="clearTitle">Round 1 Cleared!</h2>
+      <p id="clearStats" style="margin-bottom:20px;">Score: 5,120 / 5,000<br>Time Remaining: 02:45</p>
+      <button id="nextRoundBtn" class="game-btn">Next Round</button>
+    </div>
+    
+    <!-- Game Over Overlay -->
+    <div id="gameOverScreen" class="overlay" style="display:none;">
+      <div class="badge" style="border-color:#ff4444; color:#ff4444;">Game Over</div>
+      <h2 id="gameOverTitle" style="color:#ff4444;">Challenge Failed</h2>
+      <p id="gameOverStats" style="margin-bottom:20px;">Completed: 3 Rounds<br>Cumulative Score: 16,420</p>
+      <div style="display:flex; justify-content:center;">
+        <button id="retryBtn" class="game-btn">Try Again</button>
+        <button id="menuBtn" class="game-btn secondary">Main Menu</button>
+      </div>
     </div>
   </div>
   <div id="footer">Swap adjacent tokens to match 3+ • Bigger combos get Bigger Bonuses!</div>
@@ -168,11 +275,45 @@
   const startScreen = document.getElementById('startScreen');
   const startBtn = document.getElementById('startBtn');
 
+  const goalContainer = document.getElementById('goalContainer');
+  const goalEl = document.getElementById('goal');
+  const roundContainer = document.getElementById('roundContainer');
+  const roundEl = document.getElementById('round');
+  const timerContainer = document.getElementById('timerContainer');
+  const timerEl = document.getElementById('timer');
+  const cumScoreContainer = document.getElementById('cumScoreContainer');
+  const cumScoreEl = document.getElementById('cumScore');
+
+  const clearScreen = document.getElementById('clearScreen');
+  const clearTitle = document.getElementById('clearTitle');
+  const clearStats = document.getElementById('clearStats');
+  const nextRoundBtn = document.getElementById('nextRoundBtn');
+
+  const gameOverScreen = document.getElementById('gameOverScreen');
+  const gameOverTitle = document.getElementById('gameOverTitle');
+  const gameOverStats = document.getElementById('gameOverStats');
+  const retryBtn = document.getElementById('retryBtn');
+  const menuBtn = document.getElementById('menuBtn');
+
+  const modeChallengeCard = document.getElementById('modeChallenge');
+  const modeInfiniteCard = document.getElementById('modeInfinite');
+
   // ---------- State ----------
   let grid = [];          // grid[row][col] = {type, x, y, offsetX, offsetY, scale, alpha}
   let score = 0;
-  let best = Number(localStorage.getItem('ccc_best') || 0);
-  bestEl.textContent = best;
+  let bestInfinite = Number(localStorage.getItem('ccc_best_infinite') || localStorage.getItem('ccc_best') || 0);
+  let bestChallenge = Number(localStorage.getItem('ccc_best_challenge') || 0);
+  let selectedMode = 'challenge';
+  let gameMode = 'challenge';
+  let currentRound = 1;
+  let cumulativeScore = 0;
+  let timeLeft = 0;
+  let timerInterval = null;
+  let targetGoal = 5000;
+
+  // Initialize best score based on initial selection
+  bestEl.textContent = bestChallenge;
+
   let selected = null;    // {row, col}
   let animating = false;
   let inputLocked = true; // stays locked until Start Game is pressed
@@ -490,10 +631,20 @@
   function addScore(points, comboLevel) {
     score += points;
     scoreEl.textContent = score;
-    if (score > best) {
-      best = score;
-      bestEl.textContent = best;
-      localStorage.setItem('ccc_best', String(best));
+    if (gameMode === 'infinite') {
+      if (score > bestInfinite) {
+        bestInfinite = score;
+        bestEl.textContent = bestInfinite;
+        localStorage.setItem('ccc_best_infinite', String(bestInfinite));
+        localStorage.setItem('ccc_best', String(bestInfinite));
+      }
+    } else {
+      const currentTotal = cumulativeScore + score;
+      if (currentTotal > bestChallenge) {
+        bestChallenge = currentTotal;
+        bestEl.textContent = bestChallenge;
+        localStorage.setItem('ccc_best_challenge', String(bestChallenge));
+      }
     }
     if (comboLevel > 1) {
       comboEl.textContent = `COMBO x${comboLevel}`;
@@ -513,6 +664,15 @@
   function resolveBoard(comboLevel) {
     const groups = findMatchGroups();
     if (groups.length === 0) {
+      if (gameMode === 'challenge') {
+        if (score >= targetGoal) {
+          triggerRoundCleared();
+          return;
+        } else if (timeLeft <= 0) {
+          triggerGameOver();
+          return;
+        }
+      }
       inputLocked = false;
       // ensure a move exists; if not, reshuffle to keep the round infinite
       if (!hasAnyValidMove()) {
@@ -778,16 +938,142 @@
     }
   });
 
+  // ---------- Game Helpers ----------
+  function formatTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function startTimer() {
+    stopTimer();
+    timerEl.textContent = formatTime(timeLeft);
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      if (timeLeft < 0) timeLeft = 0;
+      timerEl.textContent = formatTime(timeLeft);
+      if (timeLeft <= 0) {
+        stopTimer();
+        if (!inputLocked) {
+          triggerGameOver();
+        }
+      }
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function startRound() {
+    stopTimer();
+    score = 0;
+    scoreEl.textContent = score;
+
+    targetGoal = 5000 + (currentRound - 1) * 100;
+    timeLeft = Math.max(10, 300 - (currentRound - 1) * 10);
+
+    goalEl.textContent = targetGoal;
+    roundEl.textContent = currentRound;
+    timerEl.textContent = formatTime(timeLeft);
+    cumScoreEl.textContent = cumulativeScore;
+
+    goalContainer.style.display = 'inline';
+    roundContainer.style.display = 'block';
+    timerContainer.style.display = 'block';
+    cumScoreContainer.style.display = 'block';
+
+    buildInitialGrid();
+    inputLocked = false;
+    startTimer();
+  }
+
+  function triggerRoundCleared() {
+    stopTimer();
+    inputLocked = true;
+    cumulativeScore += score;
+
+    clearTitle.textContent = `Round ${currentRound} Cleared!`;
+    clearStats.innerHTML = `Round Score: ${score} / ${targetGoal}<br>Time Remaining: ${formatTime(timeLeft)}<br>Total Score: ${cumulativeScore}`;
+    clearScreen.style.display = 'flex';
+  }
+
+  function triggerGameOver() {
+    stopTimer();
+    inputLocked = true;
+    cumulativeScore += score;
+
+    gameOverTitle.textContent = `Challenge Failed`;
+    gameOverStats.innerHTML = `Completed: ${currentRound - 1} Round${currentRound - 1 === 1 ? '' : 's'}<br>Final Score: ${cumulativeScore}`;
+    gameOverScreen.style.display = 'flex';
+  }
+
   // ---------- Boot ----------
+  modeChallengeCard.addEventListener('click', () => {
+    selectedMode = 'challenge';
+    modeChallengeCard.classList.add('active');
+    modeInfiniteCard.classList.remove('active');
+    bestEl.textContent = bestChallenge;
+  });
+
+  modeInfiniteCard.addEventListener('click', () => {
+    selectedMode = 'infinite';
+    modeInfiniteCard.classList.add('active');
+    modeChallengeCard.classList.remove('active');
+    bestEl.textContent = bestInfinite;
+  });
+
+  startBtn.addEventListener('click', () => {
+    startScreen.style.display = 'none';
+    gameMode = selectedMode;
+    gameStarted = true;
+    startRenderLoop();
+
+    if (gameMode === 'challenge') {
+      currentRound = 1;
+      cumulativeScore = 0;
+      startRound();
+    } else {
+      // Infinite Mode
+      goalContainer.style.display = 'none';
+      roundContainer.style.display = 'none';
+      timerContainer.style.display = 'none';
+      cumScoreContainer.style.display = 'none';
+      
+      score = 0;
+      scoreEl.textContent = score;
+      buildInitialGrid();
+      inputLocked = false;
+    }
+  });
+
+  nextRoundBtn.addEventListener('click', () => {
+    clearScreen.style.display = 'none';
+    currentRound++;
+    startRound();
+  });
+
+  retryBtn.addEventListener('click', () => {
+    gameOverScreen.style.display = 'none';
+    currentRound = 1;
+    cumulativeScore = 0;
+    startRound();
+  });
+
+  menuBtn.addEventListener('click', () => {
+    gameOverScreen.style.display = 'none';
+    startScreen.style.display = 'flex';
+    gameStarted = false;
+    inputLocked = true;
+    bestEl.textContent = selectedMode === 'challenge' ? bestChallenge : bestInfinite;
+  });
+
   loadImages(() => {
     buildInitialGrid();
     render(); // static preview visible behind the start screen
-    startBtn.addEventListener('click', () => {
-      startScreen.style.display = 'none';
-      gameStarted = true;
-      inputLocked = false;
-      startRenderLoop();
-    }, { once: true });
   });
 })();
 </script>
